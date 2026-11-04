@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "title": "Product Recall: ASDA Ladies’ Handbags (2609-0009)",
+      "link": "/product-safety-alerts-reports-recalls/product-recall-asda-ladies-handbags-2609-0009",
+      "public_timestamp": "2026-11-02T15:30:49Z",
+      "index": "govuk",
+      "es_score": null,
+      "_id": "/product-safety-alerts-reports-recalls/product-recall-asda-ladies-handbags-2609-0009",
+      "elasticsearch_type": "product_safety_alert_report_recall",
+      "document_type": "product_safety_alert_report_recall"
+    }
+  ]
+}

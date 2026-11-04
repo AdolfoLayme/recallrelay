@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: recallrelay
+    runtime: node
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --ignore-scripts && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /health
+    autoDeployTrigger: 'off'

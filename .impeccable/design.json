@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T22:49:52.895Z",
+  "title": "Design System: RecallRelay",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "White work surface",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "oklch(15% 0.000 89.9)",
+          "oklch(27% 0.000 89.9)",
+          "oklch(39% 0.000 89.9)",
+          "oklch(51% 0.000 89.9)",
+          "oklch(63% 0.000 89.9)",
+          "oklch(75% 0.000 89.9)",
+          "oklch(87% 0.000 89.9)",
+          "oklch(95% 0.000 89.9)"
+        ]
+      },
+      "bg-subtle": {
+        "role": "neutral",
+        "displayName": "Cool sidebar",
+        "canonical": "oklch(97.8% 0.003 247.9)",
+        "tonalRamp": [
+          "oklch(15% 0.003 247.9)",
+          "oklch(27% 0.003 247.9)",
+          "oklch(39% 0.003 247.9)",
+          "oklch(51% 0.003 247.9)",
+          "oklch(63% 0.003 247.9)",
+          "oklch(75% 0.003 247.9)",
+          "oklch(87% 0.003 247.9)",
+          "oklch(95% 0.003 247.9)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Control border",
+        "canonical": "oklch(92.9% 0.010 252.8)",
+        "tonalRamp": [
+          "oklch(15% 0.010 252.8)",
+          "oklch(27% 0.010 252.8)",
+          "oklch(39% 0.010 252.8)",
+          "oklch(51% 0.010 252.8)",
+          "oklch(63% 0.010 252.8)",
+          "oklch(75% 0.010 252.8)",
+          "oklch(87% 0.010 252.8)",
+          "oklch(95% 0.010 252.8)"
+        ]
+      },
+      "border-soft": {
+        "role": "neutral",
+        "displayName": "Row divider",
+        "canonical": "oklch(94.8% 0.005 247.9)",
+        "tonalRamp": [
+          "oklch(15% 0.005 247.9)",
+          "oklch(27% 0.005 247.9)",
+          "oklch(39% 0.005 247.9)",
+          "oklch(51% 0.005 247.9)",
+          "oklch(63% 0.005 247.9)",
+          "oklch(75% 0.005 247.9)",
+          "oklch(87% 0.005 247.9)",
+          "oklch(95% 0.005 247.9)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Deep slate text",
+        "canonical": "oklch(24.7% 0.044 273.4)",
+        "tonalRamp": [
+          "oklch(15% 0.044 273.4)",
+          "oklch(27% 0.044 273.4)",
+          "oklch(39% 0.044 273.4)",
+          "oklch(51% 0.044 273.4)",
+          "oklch(63% 0.044 273.4)",
+          "oklch(75% 0.044 273.4)",
+          "oklch(87% 0.044 273.4)",
+          "oklch(95% 0.044 273.4)"
+        ]
+      },
+      "text-2": {
+        "role": "neutral",
+        "displayName": "Secondary slate",
+        "canonical": "oklch(45.5% 0.035 270.5)",
+        "tonalRamp": [
+          "oklch(15% 0.035 270.5)",
+          "oklch(27% 0.035 270.5)",
+          "oklch(39% 0.035 270.5)",
+          "oklch(51% 0.035 270.5)",
+          "oklch(63% 0.035 270.5)",
+          "oklch(75% 0.035 270.5)",
+          "oklch(87% 0.035 270.5)",
+          "oklch(95% 0.035 270.5)"
+        ]
+      },
+      "text-3": {
+        "role": "neutral",
+        "displayName": "Caption slate",
+        "canonical": "oklch(55.4% 0.032 263.3)",
+        "tonalRamp": [
+          "oklch(15% 0.032 263.3)",
+          "oklch(27% 0.032 263.3)",
+          "oklch(39% 0.032 263.3)",
+          "oklch(51% 0.032 263.3)",
+          "oklch(63% 0.032 263.3)",
+          "oklch(75% 0.032 263.3)",
+          "oklch(87% 0.032 263.3)",
+          "oklch(95% 0.032 263.3)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Action indigo",
+        "canonical": "oklch(51.7% 0.215 274.4)",
+        "tonalRamp": [
+          "oklch(15% 0.120 274.4)",
+          "oklch(27% 0.120 274.4)",
+          "oklch(39% 0.120 274.4)",
+          "oklch(51% 0.120 274.4)",
+          "oklch(63% 0.120 274.4)",
+          "oklch(75% 0.120 274.4)",
+          "oklch(87% 0.120 274.4)",
+          "oklch(95% 0.120 274.4)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Action indigo hover",
+        "canonical": "oklch(46.4% 0.203 273.9)",
+        "tonalRamp": [
+          "oklch(15% 0.120 273.9)",
+          "oklch(27% 0.120 273.9)",
+          "oklch(39% 0.120 273.9)",
+          "oklch(51% 0.120 273.9)",
+          "oklch(63% 0.120 273.9)",
+          "oklch(75% 0.120 273.9)",
+          "oklch(87% 0.120 273.9)",
+          "oklch(95% 0.120 273.9)"
+        ]
+      },
+      "primary-tint": {
+        "role": "primary",
+        "displayName": "Selected indigo tint",
+        "canonical": "oklch(95.8% 0.020 279.9)",
+        "tonalRamp": [
+          "oklch(15% 0.020 279.9)",
+          "oklch(27% 0.020 279.9)",
+          "oklch(39% 0.020 279.9)",
+          "oklch(51% 0.020 279.9)",
+          "oklch(63% 0.020 279.9)",
+          "oklch(75% 0.020 279.9)",
+          "oklch(87% 0.020 279.9)",
+          "oklch(95% 0.020 279.9)"
+        ]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Success green",
+        "canonical": "oklch(44.1% 0.089 163.6)",
+        "tonalRamp": [
+          "oklch(15% 0.089 163.6)",
+          "oklch(27% 0.089 163.6)",
+          "oklch(39% 0.089 163.6)",
+          "oklch(51% 0.089 163.6)",
+          "oklch(63% 0.089 163.6)",
+          "oklch(75% 0.089 163.6)",
+          "oklch(87% 0.089 163.6)",
+          "oklch(95% 0.089 163.6)"
+        ]
+      },
+      "success-fill": {
+        "role": "semantic",
+        "displayName": "Success tint",
+        "canonical": "oklch(94.7% 0.045 154.2)",
+        "tonalRamp": [
+          "oklch(15% 0.045 154.2)",
+          "oklch(27% 0.045 154.2)",
+          "oklch(39% 0.045 154.2)",
+          "oklch(51% 0.045 154.2)",
+          "oklch(63% 0.045 154.2)",
+          "oklch(75% 0.045 154.2)",
+          "oklch(87% 0.045 154.2)",
+          "oklch(95% 0.045 154.2)"
+        ]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Warning amber",
+        "canonical": "oklch(47.0% 0.140 41.4)",
+        "tonalRamp": [
+          "oklch(15% 0.120 41.4)",
+          "oklch(27% 0.120 41.4)",
+          "oklch(39% 0.120 41.4)",
+          "oklch(51% 0.120 41.4)",
+          "oklch(63% 0.120 41.4)",
+          "oklch(75% 0.120 41.4)",
+          "oklch(87% 0.120 41.4)",
+          "oklch(95% 0.120 41.4)"
+        ]
+      },
+      "warning-fill": {
+        "role": "semantic",
+        "displayName": "Warning tint",
+        "canonical": "oklch(94.5% 0.069 93.9)",
+        "tonalRamp": [
+          "oklch(15% 0.069 93.9)",
+          "oklch(27% 0.069 93.9)",
+          "oklch(39% 0.069 93.9)",
+          "oklch(51% 0.069 93.9)",
+          "oklch(63% 0.069 93.9)",
+          "oklch(75% 0.069 93.9)",
+          "oklch(87% 0.069 93.9)",
+          "oklch(95% 0.069 93.9)"
+        ]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Danger rose",
+        "canonical": "oklch(49.0% 0.192 14.8)",
+        "tonalRamp": [
+          "oklch(15% 0.120 14.8)",
+          "oklch(27% 0.120 14.8)",
+          "oklch(39% 0.120 14.8)",
+          "oklch(51% 0.120 14.8)",
+          "oklch(63% 0.120 14.8)",
+          "oklch(75% 0.120 14.8)",
+          "oklch(87% 0.120 14.8)",
+          "oklch(95% 0.120 14.8)"
+        ]
+      },
+      "danger-fill": {
+        "role": "semantic",
+        "displayName": "Danger tint",
+        "canonical": "oklch(94.1% 0.032 0.8)",
+        "tonalRamp": [
+          "oklch(15% 0.032 0.8)",
+          "oklch(27% 0.032 0.8)",
+          "oklch(39% 0.032 0.8)",
+          "oklch(51% 0.032 0.8)",
+          "oklch(63% 0.032 0.8)",
+          "oklch(75% 0.032 0.8)",
+          "oklch(87% 0.032 0.8)",
+          "oklch(95% 0.032 0.8)"
+        ]
+      },
+      "info": {
+        "role": "semantic",
+        "displayName": "Information blue",
+        "canonical": "oklch(49.3% 0.179 258.4)",
+        "tonalRamp": [
+          "oklch(15% 0.120 258.4)",
+          "oklch(27% 0.120 258.4)",
+          "oklch(39% 0.120 258.4)",
+          "oklch(51% 0.120 258.4)",
+          "oklch(63% 0.120 258.4)",
+          "oklch(75% 0.120 258.4)",
+          "oklch(87% 0.120 258.4)",
+          "oklch(95% 0.120 258.4)"
+        ]
+      },
+      "info-fill": {
+        "role": "semantic",
+        "displayName": "Information tint",
+        "canonical": "oklch(94.1% 0.029 254.7)",
+        "tonalRamp": [
+          "oklch(15% 0.029 254.7)",
+          "oklch(27% 0.029 254.7)",
+          "oklch(39% 0.029 254.7)",
+          "oklch(51% 0.029 254.7)",
+          "oklch(63% 0.029 254.7)",
+          "oklch(75% 0.029 254.7)",
+          "oklch(87% 0.029 254.7)",
+          "oklch(95% 0.029 254.7)"
+        ]
+      },
+      "neutral": {
+        "role": "neutral",
+        "displayName": "Neutral slate",
+        "canonical": "oklch(45.5% 0.035 270.5)",
+        "tonalRamp": [
+          "oklch(15% 0.035 270.5)",
+          "oklch(27% 0.035 270.5)",
+          "oklch(39% 0.035 270.5)",
+          "oklch(51% 0.035 270.5)",
+          "oklch(63% 0.035 270.5)",
+          "oklch(75% 0.035 270.5)",
+          "oklch(87% 0.035 270.5)",
+          "oklch(95% 0.035 270.5)"
+        ]
+      },
+      "neutral-fill": {
+        "role": "neutral",
+        "displayName": "Neutral tint",
+        "canonical": "oklch(94.8% 0.005 247.9)",
+        "tonalRamp": [
+          "oklch(15% 0.005 247.9)",
+          "oklch(27% 0.005 247.9)",
+          "oklch(39% 0.005 247.9)",
+          "oklch(51% 0.005 247.9)",
+          "oklch(63% 0.005 247.9)",
+          "oklch(75% 0.005 247.9)",
+          "oklch(87% 0.005 247.9)",
+          "oklch(95% 0.005 247.9)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "page-title": {
+        "displayName": "Page title",
+        "purpose": "Merchant and buyer page headings."
+      },
+      "section-title": {
+        "displayName": "Section title",
+        "purpose": "Card and work area headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Merchant and buyer copy, including notices."
+      },
+      "reference": {
+        "displayName": "Reference",
+        "purpose": "Order IDs, hashes, and PayPal references only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "button-menu",
+        "value": "0 1px 1px rgba(0,0,0,.08), 0 2px 5px rgba(60,66,87,.08)",
+        "purpose": "Small lift on buttons and menus; cards remain flat."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": "140ms ease-out",
+        "purpose": "Button color and border transitions."
+      },
+      {
+        "name": "loading-spinner",
+        "value": "800ms linear infinite",
+        "purpose": "Progress inside busy buttons."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack-workareas",
+        "value": "1100px"
+      },
+      {
+        "name": "compact-shell",
+        "value": "800px"
+      },
+      {
+        "name": "horizontal-nav",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Confirm or advance a merchant task.",
+      "html": "<button class=\"ds-btn-primary\">Approve plan and budget</button>",
+      "css": ".ds-btn-primary{min-height:32px;padding:5px 12px;border:1px solid var(--primary);border-radius:6px;background:var(--primary);color:#fff;font:500 14px/20px 'Inter Variable',Inter,sans-serif;box-shadow:0 1px 1px rgba(0,0,0,.08),0 2px 5px rgba(60,66,87,.08);cursor:pointer;transition:background 140ms ease-out,border-color 140ms ease-out}.ds-btn-primary:hover{background:var(--primary-hover);border-color:var(--primary-hover)}.ds-btn-primary:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Open a related action without taking primary emphasis.",
+      "html": "<button class=\"ds-btn-secondary\">Read original notice</button>",
+      "css": ".ds-btn-secondary{min-height:32px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:500 14px/20px 'Inter Variable',Inter,sans-serif;box-shadow:0 1px 1px rgba(0,0,0,.08),0 2px 5px rgba(60,66,87,.08);cursor:pointer}.ds-btn-secondary:hover{background:var(--bg-subtle);border-color:#cbd3df}.ds-btn-secondary:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search product, model, or source in the top bar.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search product, model, or source\" aria-label=\"Search product, model, or source\">",
+      "css": ".ds-input{width:320px;height:32px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:13px/20px 'Inter Variable',Inter,sans-serif}.ds-input::placeholder{color:var(--text-3)}.ds-input:hover{border-color:#cbd3df}.ds-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(74,79,224,.25)}"
+    },
+    {
+      "name": "Active Navigation",
+      "kind": "nav",
+      "description": "Current merchant route in the cool sidebar.",
+      "html": "<a class=\"ds-nav\" href=\"#\">Recalls</a>",
+      "css": ".ds-nav{display:flex;align-items:center;height:32px;padding:0 10px;border-radius:6px;background:var(--primary-tint);color:var(--primary);font:500 14px/20px 'Inter Variable',Inter,sans-serif;text-decoration:none}.ds-nav:hover{background:var(--border-soft)}.ds-nav:focus-visible{outline:2px solid var(--primary);outline-offset:2px}"
+    },
+    {
+      "name": "Success Badge",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Completed settlement state with explicit text.",
+      "html": "<span class=\"ds-badge\">Done</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;min-height:20px;padding:2px 7px;border-radius:4px;background:var(--success-fill);color:var(--success);font:500 12px/16px 'Inter Variable',Inter,sans-serif}.ds-badge:hover{background:var(--success-fill)}"
+    },
+    {
+      "name": "Decision Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A bordered card for evidence or a deliberate approval.",
+      "html": "<section class=\"ds-card\"><h2>Approve plan</h2><p>Review each currency before approving.</p></section>",
+      "css": ".ds-card{padding:20px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font:14px/20px 'Inter Variable',Inter,sans-serif}.ds-card h2{margin:0 0 12px;font-size:16px;line-height:24px;font-weight:600}.ds-card p{margin:0;color:var(--text-2)}.ds-card:hover{border-color:var(--border)}"
+    },
+    {
+      "name": "Urgent Timeline Bar",
+      "kind": "custom",
+      "description": "A soft deadline bar in the refund window.",
+      "html": "<div class=\"ds-timeline-bar\">2 days left</div>",
+      "css": ".ds-timeline-bar{display:inline-flex;align-items:center;min-height:20px;padding:2px 8px;border-radius:4px;background:var(--danger-fill);color:var(--danger);font:12px/16px 'Inter Variable',Inter,sans-serif}.ds-timeline-bar:hover{background:var(--danger-fill)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Clear Settlement Desk",
+    "overview": "RecallRelay is a working payments dashboard for merchants handling a safety recall. White work surfaces, a quiet cool sidebar, a compact type scale, and an explicit warning strip make status and action easy to find. The refund timeline is the one distinctive visual move: it turns a deadline into a readable order of work while keeping the same restrained component system. The system is exact and calm. It treats a hazard plainly, exposes simulated and sandbox state, and places evidence beside financial decisions. The rejected case-file styling is not part of this system.",
+    "keyCharacteristics": [
+      "Dense, aligned data tables and compact controls.",
+      "Soft state fills with words and icons where useful.",
+      "A deliberate approval card next to the order table.",
+      "Consistent merchant shell and checkout-like buyer flow."
+    ],
+    "rules": [
+      {
+        "name": "The Meaningful Color Rule",
+        "body": "A status color always has a visible word. Danger is reserved for hazards, urgent work, or review, never general decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Financial Numeral Rule",
+        "body": "Keep currency symbols, amounts, and ISO currency codes together and aligned with tabular numerals. Never imply a cross-currency total.",
+        "section": "typography"
+      },
+      {
+        "name": "The Decision Adjacency Rule",
+        "body": "Place the plan's budget and approval beside the order table so every proposed money movement is in view at the decision point.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Use borders and spacing to structure work; reserve shadows for controls and overlays.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep safety hazards explicit and visually prominent.",
+      "Do show status in words alongside color and use visible keyboard focus.",
+      "Do keep merchant data dense, aligned, and legible at 768 px."
+    ],
+    "donts": [
+      "Don't revive beige paper, serif headings, stamps, double rules, or editorial case-file styling.",
+      "Don't use gradients, glass, pure black fills, or Unicode glyphs as icons.",
+      "Don't put amounts in monospace or add different currencies together."
+    ]
+  }
+}
