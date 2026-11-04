@@ -1,0 +1,39 @@
+{
+  "name": "recallrelay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.ts",
+    "start": "node src/server.ts",
+    "build": "vite build --config web/vite.config.ts",
+    "test:e2e": "pnpm build && node web/e2e.ts",
+    "test": "pnpm build && node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json",
+    "demo": "node scripts/demo.ts",
+    "evals": "node scripts/evals.ts",
+    "sandbox:smoke": "node --env-file-if-exists=.env scripts/sandbox-smoke.ts",
+    "check:secrets": "bash scripts/check-secrets.sh"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@hono/node-server": "^1.19.4",
+    "hono": "^4.11.9",
+    "lucide-react": "^1.67.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5"
+  }
+}

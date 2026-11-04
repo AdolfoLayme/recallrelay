@@ -1,0 +1,8 @@
+{
+  "cases": 40,
+  "truePositive": 7,
+  "falsePositive": 0,
+  "falseNegative": 6,
+  "precision": 1,
+  "recall": 0.5384615384615384
+}

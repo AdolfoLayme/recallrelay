@@ -1,0 +1,401 @@
+{
+  "content": [
+    {
+      "id": 10119482,
+      "reference": "SR/03145/26",
+      "publicationDate": "2026-11-03T16:43:05.336+00:00",
+      "product": {
+        "id": 10320617,
+        "nameSpecific": "Baby Sleep Pillow – Blue and White Cat",
+        "nameSpecificKnown": true,
+        "brandKnown": false,
+        "brands": [],
+        "name": "Baby pillow",
+        "photos": [
+          {
+            "id": 11239388,
+            "mimeType": "image/png",
+            "photoFullSize": null,
+            "thumbnail": null,
+            "fileName": "2601-01391.png",
+            "published": true,
+            "mainPicture": true
+          },
+          {
+            "id": 11239389,
+            "mimeType": "image/png",
+            "photoFullSize": null,
+            "thumbnail": null,
+            "fileName": "2601-0139.png",
+            "published": true,
+            "mainPicture": false
+          }
+        ]
+      },
+      "risk": {
+        "id": 10022648,
+        "riskType": [
+          {
+            "key": "riskType.suffocation",
+            "name": "SUFFOCATION"
+          }
+        ]
+      },
+      "webReport": null,
+      "corrigendum": null,
+      "modificationDate": "2026-11-03T16:43:05.337+00:00",
+      "hasBeenUpdated": true
+    }
+  ],
+  "detail": {
+    "id": 10119482,
+    "notificationType": {
+      "key": "directive.article.12.gpsd.article.22.regulation.31008.765",
+      "code": "A12",
+      "name": "ARTICLE_12"
+    },
+    "reference": "SR/03145/26",
+    "corrigendum": null,
+    "country": {
+      "key": "XI",
+      "propertyKey": "country.XI",
+      "name": "United Kingdom in respect of Northern Ireland",
+      "orderIndex": 999,
+      "euCountry": false,
+      "eeaCountry": false
+    },
+    "creationDate": "2026-10-28T09:11:54.873Z",
+    "publicationDate": "2026-11-03T16:43:05.336Z",
+    "modificationDate": "2026-11-03T16:43:05.337Z",
+    "isImmediatePublication": true,
+    "singlePublication": true,
+    "forInfo": false,
+    "product": {
+      "id": 10320617,
+      "productCategory": {
+        "key": "product.category.childcare.articles.and.children.equipment",
+        "name": "CHILDCARE_ARTICLES"
+      },
+      "professionalProduct": false,
+      "isCounterfeit": {
+        "key": "option.no",
+        "name": "NO"
+      },
+      "nameSpecific": "Baby Sleep Pillow – Blue and White Cat",
+      "nameSpecificKnown": true,
+      "brandKnown": false,
+      "brands": [],
+      "name": null,
+      "typeModelKnown": false,
+      "batchNumberKnown": false,
+      "barcodeKnown": false,
+      "packageDescriptionKnown": false,
+      "versions": [
+        {
+          "id": 10320617,
+          "language": {
+            "key": "EN",
+            "name": "english"
+          },
+          "name": "Baby pillow",
+          "description": "Blue and white baby sleep pillow in the shape of cartoon cat, advertised as suitable for use from 0-12 months.",
+          "packageDescription": null,
+          "productCategoryOther": null
+        }
+      ],
+      "barcodes": [],
+      "batchNumbers": [],
+      "modelTypes": [],
+      "description": null,
+      "packageDescription": null,
+      "productCategoryOther": null,
+      "photos": [
+        {
+          "id": 11239388,
+          "mainPicture": true,
+          "fileName": "2601-01391.png",
+          "path": null
+        },
+        {
+          "id": 11239389,
+          "mainPicture": false,
+          "fileName": "2601-0139.png",
+          "path": null
+        }
+      ]
+    },
+    "risk": {
+      "id": 10022648,
+      "riskType": [
+        {
+          "key": "riskType.suffocation",
+          "name": "SUFFOCATION"
+        }
+      ],
+      "versions": [
+        {
+          "id": 10022648,
+          "language": {
+            "key": "EN",
+            "name": "english"
+          },
+          "riskDescription": "The pillow is not firm enough, leading to a risk of suffocation for the baby if their face is turned towards or leaning against the cushion for a long period.",
+          "legalProvision": "The product does not comply with the General Product Safety Regulation.",
+          "riskTypeOther": null
+        }
+      ]
+    },
+    "measureTaken": {
+      "id": 10022648,
+      "hasPublishedRecallOnline": {
+        "key": "option.no",
+        "name": "NO"
+      },
+      "measures": [
+        {
+          "id": 10709724,
+          "entryIntoForceDateKnown": false,
+          "entryIntoForceDate": null,
+          "measureDuration": null,
+          "measureScope": null,
+          "measureCategory": {
+            "key": "measure.category.other",
+            "name": "OTHER"
+          },
+          "measureType": {
+            "key": "measure.type.compulsory",
+            "name": "COMPULSORY"
+          },
+          "measureVoluntaryEconomicOperator": null,
+          "measureVoluntaryAuthority": null,
+          "measureCompulsoryEconomicOperator": {
+            "key": "measure.operator.other",
+            "name": "OTHER"
+          },
+          "measureCompulsoryAuthority": null,
+          "versions": [
+            {
+              "id": 10709724,
+              "language": {
+                "key": "EN",
+                "name": "english"
+              },
+              "measureCategoryOther": "The listing is no longer available on the online marketplace (Fruugo)."
+            }
+          ]
+        }
+      ],
+      "companyRecalls": []
+    },
+    "traceability": {
+      "id": 10022648,
+      "countryOrigin": {
+        "key": "CN",
+        "propertyKey": "country.CN",
+        "name": "People's Republic of China",
+        "orderIndex": 47,
+        "euCountry": false,
+        "eeaCountry": false
+      },
+      "isSoldOnline": {
+        "key": "option.yes",
+        "name": "YES"
+      },
+      "onlineTrader": null
+    },
+    "reactingCountries": [],
+    "webReport": null,
+    "versions": [
+      {
+        "id": 10119482,
+        "language": {
+          "key": "BG",
+          "name": "български"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "CS",
+          "name": "čeština"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "DA",
+          "name": "dansk"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "DE",
+          "name": "deutsch"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "EL",
+          "name": "ελληνικά"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "EN",
+          "name": "english"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "ES",
+          "name": "español"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "ET",
+          "name": "eesti keel"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "FI",
+          "name": "suomi"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "FR",
+          "name": "français"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "HR",
+          "name": "hrvatski"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "HU",
+          "name": "magyar"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "IT",
+          "name": "italiano"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "LT",
+          "name": "lietuvių kalba"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "LV",
+          "name": "latviešu valoda"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "MT",
+          "name": "malti"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "NL",
+          "name": "nederlands"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "PL",
+          "name": "polski"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "PT",
+          "name": "português"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "RO",
+          "name": "română"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "SK",
+          "name": "slovenčina (slovenský jazyk)"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "SL",
+          "name": "slovenščina (slovenski jezik)"
+        },
+        "corrigendum": null
+      },
+      {
+        "id": 10119482,
+        "language": {
+          "key": "SV",
+          "name": "svenska"
+        },
+        "corrigendum": null
+      }
+    ],
+    "onlineTraderProductIdentifierReference": [
+      {
+        "onlineTrader": "Other",
+        "uniqueProductIdentifier": "Fruugo: 342637611-750769198"
+      }
+    ]
+  }
+}
