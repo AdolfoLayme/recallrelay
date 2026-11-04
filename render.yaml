@@ -1,8 +1,26 @@
 services:
   - type: web
     name: recallrelay
-    runtime: node
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --ignore-scripts && pnpm build
-    startCommand: pnpm start
+    runtime: docker
+    plan: free
     healthCheckPath: /health
-    autoDeployTrigger: 'off'
+    autoDeployTrigger: commit
+    envVars:
+      - key: PAYPAL_MODE
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        value: pending
+      - key: LINK_SIGNING_SECRET
+        generateValue: true
+      - key: AI_BASE_URL
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

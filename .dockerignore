@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+.tooling
+node_modules
+web/dist
+docs
+*.db
+*.db-*
