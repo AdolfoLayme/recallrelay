@@ -421,7 +421,7 @@ export function createApp(deps: Dependencies): App {
     const checked = checkNotice(text, { ...draftInput, language: order.language,
       euBuyer: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO'].includes(order.buyerCountry) });
     return data(c, { text, ...checked, language: order.language, orderId: order.id,
-      demoWarning: recall.id === 'demo-lumen-mini-heater' && order.language === 'de' && deps.config.paypalMode === 'fake'
+      demoWarning: recall.id === 'demo-lumen-mini-heater' && order.language === 'de'
         ? DEMO_NOTICE_WARNING_DE : undefined });
   });
   app.post('/v1/notices/send', async c => {
