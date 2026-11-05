@@ -105,3 +105,17 @@ test('capture lookup exposes the verified sandbox payee for reconciliation', asy
     id: 'cap-1', status: 'REFUNDED', refundedMinor: 1200, amountMinor: 1200, currency: 'USD', payeeMerchantId: 'merchant-1',
   });
 });
+
+test('capture returns the full order, since the capture response omits payee details', async () => {
+  const calls: string[] = [];
+  const paypal = new SandboxPayPal({ clientId: 'id', clientSecret: 'secret', webhookId: 'hook', fetcher: async (input, init = {}) => {
+    const url = String(input);
+    if (url.endsWith('/v1/oauth2/token')) return Response.json({ access_token: 'redacted-test-token', expires_in: 3600 });
+    calls.push(`${init.method} ${new URL(url).pathname}`);
+    if (init.method === 'POST') return Response.json({ id: 'order1', status: 'COMPLETED' });
+    return Response.json({ id: 'order1', status: 'COMPLETED', purchase_units: [{ payee: { merchant_id: 'merchant-1' } }] });
+  } });
+  const order = await paypal.captureOrder('order1', 'key1') as { purchase_units?: { payee?: { merchant_id?: string } }[] };
+  assert.equal(order.purchase_units?.[0]?.payee?.merchant_id, 'merchant-1');
+  assert.deepEqual(calls, ['POST /v2/checkout/orders/order1/capture', 'GET /v2/checkout/orders/order1']);
+});
