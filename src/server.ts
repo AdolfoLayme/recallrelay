@@ -16,6 +16,9 @@ import { FakePayPal } from './paypal/fake.ts';
 import { SandboxPayPal } from './paypal/sandbox.ts';
 import type { AiProvider, Extraction } from './ai/provider.ts';
 import { FakeAiProvider } from './ai/fake.ts';
+
+// The demo recall uses fixed notices so every judge sees the same check.
+const DEMO_NOTICE_WRITER = new FakeAiProvider();
 import { OpenAiCompatibleProvider } from './ai/provider.ts';
 import type { RecallNotice } from './sources/types.ts';
 import { loadSources } from './sources/index.ts';
@@ -410,11 +413,11 @@ export function createApp(deps: Dependencies): App {
     if (!affected.length) throw new ApiError('NOTICE_REVIEW', 'No affected order line found', 409);
     const productName = affected[0].name;
     const brand = productName.startsWith('Harbor & Pine') ? 'Harbor & Pine' : productName.split(' ')[0];
-    const demoGerman = recall.id === 'demo-lumen-mini-heater' && order.language === 'de' && input.contact === 'https://help.harborpine.example' && deps.config.paypalMode === 'fake';
+    const demoGerman = recall.id === 'demo-lumen-mini-heater' && order.language === 'de' && input.contact === 'https://help.harborpine.example';
     const draftInput = { productName, brand, identifiers: affected.map(line => line.sku), hazard: recall.hazard ?? '',
       remedies: demoGerman ? ['free refund', 'free replacement'] : ['free refund', 'free repair', 'free replacement'], contact: input.contact,
       imageReference: recall.imageUrls[0] ?? '', soldWhere: recall.soldOnline ? 'online' : undefined };
-    const text = input.text ?? (demoGerman ? DEMO_NOTICE_DRAFT_DE : await deps.ai.draftNotice(draftInput, order.language));
+    const text = input.text ?? (demoGerman ? DEMO_NOTICE_DRAFT_DE : await (recall.id === 'demo-lumen-mini-heater' && deps.config.paypalMode === 'sandbox' ? DEMO_NOTICE_WRITER : deps.ai).draftNotice(draftInput, order.language));
     const checked = checkNotice(text, { ...draftInput, language: order.language,
       euBuyer: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO'].includes(order.buyerCountry) });
     return data(c, { text, ...checked, language: order.language, orderId: order.id,
@@ -433,12 +436,12 @@ export function createApp(deps: Dependencies): App {
     if (!affected.length) throw new ApiError('NOTICE_REVIEW', 'No affected order line found', 409);
     const productName = affected[0].name;
     const brand = productName.startsWith('Harbor & Pine') ? 'Harbor & Pine' : productName.split(' ')[0];
-    const demoGerman = recall.id === 'demo-lumen-mini-heater' && order.language === 'de' && input.contact === 'https://help.harborpine.example' && deps.config.paypalMode === 'fake';
+    const demoGerman = recall.id === 'demo-lumen-mini-heater' && order.language === 'de' && input.contact === 'https://help.harborpine.example';
     const draftInput = { productName, brand, identifiers: affected.map(line => line.sku), hazard: recall.hazard ?? '',
       remedies: demoGerman ? ['free refund', 'free replacement'] : ['free refund', 'free repair', 'free replacement'], contact: input.contact,
       imageReference: recall.imageUrls[0] ?? '', soldWhere: recall.soldOnline ? 'online' : undefined };
     let text: string;
-    try { text = input.text ?? (demoGerman ? DEMO_NOTICE_DRAFT_DE : await deps.ai.draftNotice(draftInput, order.language)); }
+    try { text = input.text ?? (demoGerman ? DEMO_NOTICE_DRAFT_DE : await (recall.id === 'demo-lumen-mini-heater' && deps.config.paypalMode === 'sandbox' ? DEMO_NOTICE_WRITER : deps.ai).draftNotice(draftInput, order.language)); }
     catch { review(deps.db, sid, 'NOTICE', { recallId: input.recallId, orderId: input.orderId, problems: ['Draft unavailable'] });
       throw new ApiError('NOTICE_REVIEW', 'Notice requires manual review', 409); }
     const checked = checkNotice(text, { ...draftInput, language: order.language, euBuyer: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO'].includes(order.buyerCountry) });
