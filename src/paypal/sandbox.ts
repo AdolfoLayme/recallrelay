@@ -144,7 +144,9 @@ export class SandboxPayPal implements PayPalGateway {
   }
 
   async captureOrder(orderId: string, requestId: string): Promise<unknown> {
-    return this.request('POST', `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {}, requestId);
+    const path = `/v2/checkout/orders/${encodeURIComponent(orderId)}`;
+    await this.request('POST', `${path}/capture`, {}, requestId);
+    return this.request('GET', path); // The capture response can omit payee details.
   }
 
   async authorizeOrder(orderId: string, requestId: string): Promise<unknown> {
