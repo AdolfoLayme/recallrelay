@@ -27,13 +27,15 @@ export function validateExtraction(raw: unknown, notice: RecallNotice): Extracti
   const factual = factualNoticeText(notice.rawText);
   const evidence = parsed.data.evidence.filter(entry => entry.quote.length > 0 && factual.includes(entry.quote));
   const supported = (field: string, value: string) => value && evidence.some(entry => entry.field === field && entry.quote.includes(value));
-  const products = parsed.data.products.map(product => ({
-    brand: supported('brand', product.brand) ? product.brand : '',
-    model: supported('model', product.model) ? product.model : '',
-    sku: supported('sku', product.sku) ? product.sku : '',
-    gtin: supported('gtin', product.gtin) ? product.gtin : '',
-    aliases: product.aliases.filter(alias => supported('alias', alias)),
-  }));
+  const products = parsed.data.products.map(product => {
+    const model = supported('model', product.model) ? product.model : '';
+    const sku = supported('sku', product.sku) ? product.sku : '';
+    // Models label the same number as sku or model between runs; a verified model number is a product identifier.
+    return { brand: supported('brand', product.brand) ? product.brand : '', model,
+      sku: sku || (/\d/.test(model) ? model : ''),
+      gtin: supported('gtin', product.gtin) ? product.gtin : '',
+      aliases: product.aliases.filter(alias => supported('alias', alias)) };
+  });
   // Confidence comes from verified evidence, not the model's own score, which varies between runs.
   const confidence = products.some(product => product.sku || product.gtin) ? 0.96
     : products.some(product => product.model) ? 0.8

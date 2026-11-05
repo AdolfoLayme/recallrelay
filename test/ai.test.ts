@@ -54,3 +54,11 @@ test('confidence comes from verified evidence, not the model score', () => {
   const unsupported = validateExtraction({ products: [{ ...empty, sku: 'FAKE-1' }], hazard: '', remedies: [], confidence: 1, evidence: [] }, notice);
   assert.equal(unsupported.confidence, 0.2);
 });
+
+test('a verified model number counts as the product identifier', () => {
+  const notice = { id: 'n', rawText: 'Recalled heaters, model HP-LMH-015.' } as Parameters<typeof validateExtraction>[1];
+  const result = validateExtraction({ products: [{ brand: '', model: 'HP-LMH-015', sku: '', gtin: '', aliases: [] }], hazard: '', remedies: [], confidence: 0.5,
+    evidence: [{ field: 'model', quote: 'model HP-LMH-015' }] }, notice);
+  assert.equal(result.products[0].sku, 'HP-LMH-015');
+  assert.equal(result.confidence, 0.96);
+});
