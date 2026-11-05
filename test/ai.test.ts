@@ -44,3 +44,13 @@ test('invalid AI JSON becomes manual review', async () => {
   });
   await assert.rejects(provider.extractRecall(notice), /MANUAL_REVIEW/);
 });
+
+test('confidence comes from verified evidence, not the model score', () => {
+  const notice = { id: 'n', rawText: 'Model HP-LMH-015 is recalled.' } as Parameters<typeof validateExtraction>[1];
+  const empty = { brand: '', model: '', sku: '', gtin: '', aliases: [] };
+  const verified = validateExtraction({ products: [{ ...empty, sku: 'HP-LMH-015' }], hazard: '', remedies: [], confidence: 0.1,
+    evidence: [{ field: 'sku', quote: 'Model HP-LMH-015' }] }, notice);
+  assert.equal(verified.confidence, 0.96);
+  const unsupported = validateExtraction({ products: [{ ...empty, sku: 'FAKE-1' }], hazard: '', remedies: [], confidence: 1, evidence: [] }, notice);
+  assert.equal(unsupported.confidence, 0.2);
+});
