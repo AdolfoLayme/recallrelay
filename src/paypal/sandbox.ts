@@ -95,6 +95,7 @@ export class SandboxPayPal implements PayPalGateway {
       id: string; status: string; amount?: { value: string; currency_code: string }; payee?: { merchant_id?: string };
     };
     return { id: result.id, status: result.status,
+      ...(result.amount ? { amountMinor: fromPayPalAmount(result.amount.value, result.amount.currency_code), currency: result.amount.currency_code } : {}),
       refundedMinor: result.status === 'REFUNDED' && result.amount ? fromPayPalAmount(result.amount.value, result.amount.currency_code) : 0,
       payeeMerchantId: result.payee?.merchant_id };
   }

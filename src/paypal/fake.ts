@@ -60,7 +60,7 @@ export class FakePayPal implements PayPalGateway {
   async getCapture(captureId: string): Promise<CaptureState> {
     const capture = this.captures.get(captureId);
     if (!capture) throw new PayPalError('Capture not found', 404);
-    return { id: captureId, refundedMinor: capture.refundedMinor,
+    return { id: captureId, refundedMinor: capture.refundedMinor, amountMinor: capture.totalMinor, currency: capture.currency,
       status: capture.refundedMinor === capture.totalMinor ? 'REFUNDED' : capture.refundedMinor > 0 ? 'PARTIALLY_REFUNDED' : 'COMPLETED',
       payeeMerchantId: capture.merchantId };
   }

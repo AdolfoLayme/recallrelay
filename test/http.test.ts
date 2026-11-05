@@ -8,11 +8,13 @@ import { loadConfig } from '../src/config.ts';
 import { cleanupExpiredSessions } from '../src/demo.ts';
 import { createRemedyToken } from '../src/remedy-link.ts';
 import { hashPlan } from '../src/plan.ts';
+import type { Plan } from '../src/plan.ts';
 
 function setup() {
   const db = createDatabase(':memory:');
-  const app = createApp({ db, paypal: new FakePayPal(), ai: new FakeAiProvider(), config: loadConfig({}) });
-  return { db, app };
+  const paypal = new FakePayPal();
+  const app = createApp({ db, paypal, ai: new FakeAiProvider(), config: loadConfig({}) });
+  return { db, app, paypal };
 }
 
 test('health and error responses expose fake mode and security headers', async () => {
@@ -39,6 +41,29 @@ test('demo sessions are isolated and reject another session cookie', async () =>
   assert.equal((await ordersB.json()).data.length, 12);
   const id = (await (await app.request('/v1/plans/missing', { headers: { Cookie: cookieA } })).json()).error.code;
   assert.equal(id, 'NOT_FOUND');
+  db.close();
+});
+
+test('sandbox order import binds the capture to its merchant and routes it to sandbox', async () => {
+  const db = createDatabase(':memory:');
+  const paypal = new FakePayPal();
+  paypal.registerCapture('import-capture', 1000, 'USD', 0, 'actual-merchant');
+  const config = loadConfig({ PAYPAL_MODE: 'sandbox', PAYPAL_CLIENT_ID: 'test-id', PAYPAL_CLIENT_SECRET: 'test-secret', PAYPAL_WEBHOOK_ID: 'test-webhook', LINK_SIGNING_SECRET: 'test-signing' });
+  const app = createApp({ db, paypal, ai: new FakeAiProvider(), config });
+  const started = await app.request('/v1/demo/session', { method: 'POST' });
+  const cookie = started.headers.get('set-cookie')!.split(';')[0];
+  const sid = (await started.json()).data.sessionId;
+  const order = { id: 'import-test', merchantId: 'wrong-merchant', buyerName: 'Buyer', buyerEmail: 'buyer@example.test',
+    buyerCountry: 'US', language: 'en', currency: 'USD', status: 'CAPTURED', shipped: true,
+    paidAt: new Date().toISOString(), captureId: 'import-capture', refundedMinor: 0,
+    lines: [{ sku: 'S', name: 'Item', quantity: 1, unitPriceMinor: 1000, taxMinor: 0 }] };
+  const send = (value: unknown) => app.request('/v1/orders/import', { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify({ orders: [value] }) });
+  assert.equal((await send(order)).status, 409);
+  assert.equal((await send({ ...order, merchantId: 'actual-merchant', lines: [{ ...order.lines[0], unitPriceMinor: 900 }] })).status, 409);
+  assert.equal((await send({ ...order, merchantId: 'actual-merchant', currency: 'CAD' })).status, 409);
+  assert.equal((await send({ ...order, merchantId: 'actual-merchant' })).status, 201);
+  const saved = db.prepare('SELECT body_json FROM orders WHERE id=? AND session_id=?').get(order.id, sid) as { body_json: string };
+  assert.equal(JSON.parse(saved.body_json).gateway, 'sandbox');
   db.close();
 });
 
@@ -69,18 +94,44 @@ test('PayPal webhooks reject invalid signatures and deduplicate verified events'
   const { db, app } = setup();
   const created = await app.request('/v1/demo/session', { method: 'POST' });
   const sid = (await created.json()).data.sessionId;
-  db.prepare('INSERT INTO plans(id,session_id,recall_id,body_json,plan_hash,created_at) VALUES(?,?,?,?,?,?)').run('p', sid, 'r', '{}', 'h', Date.now());
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders WHERE session_id=? AND id=?').get(sid, '1042') as {body_json:string}).body_json);
+  const plan: Plan = { id: 'p', recallId: 'r', items: [{orderId:order.id,merchantId:order.merchantId,action:'REFUND',amountMinor:100,currency:order.currency,reason:'Test',evidence:'Test',lineSkus:[order.lines[0].sku]}], totals: {USD:100}, planHash:'' };
+  plan.planHash = hashPlan(plan);
+  db.prepare('INSERT INTO plans(id,session_id,recall_id,body_json,plan_hash,created_at) VALUES(?,?,?,?,?,?)').run('p', sid, 'r', JSON.stringify(plan), plan.planHash, Date.now());
+  db.prepare('INSERT INTO approvals(plan_id,session_id,plan_hash,approver,budget_json,created_at) VALUES(?,?,?,?,?,?)').run('p',sid,plan.planHash,'Human',JSON.stringify({USD:100}),Date.now());
   db.prepare('INSERT INTO outbox(session_id,plan_id,order_id,action,amount_minor,currency,idempotency_key,status,paypal_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
-    .run(sid, 'p', 'o', 'REFUND', 100, 'USD', 'key', 'UNKNOWN', 'refund1', Date.now(), Date.now());
+    .run(sid, 'p', order.id, 'REFUND', 100, 'USD', 'key', 'UNKNOWN', 'refund1', Date.now(), Date.now());
   const event = { id: 'event1', event_type: 'PAYMENT.CAPTURE.REFUNDED', resource: { id: 'refund1' } };
   const send = (valid: boolean) => app.request('/webhooks/paypal', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-fake-signature': valid ? 'valid' : 'invalid' }, body: JSON.stringify(event) });
   assert.equal((await send(false)).status, 400);
   assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'UNKNOWN');
   assert.equal((await send(true)).status, 200);
   assert.equal((await send(true)).status, 200);
-  assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'SUCCEEDED');
+  assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'UNKNOWN');
+  assert.equal(JSON.parse((db.prepare('SELECT body_json FROM orders WHERE session_id=? AND id=?').get(sid,order.id) as {body_json:string}).body_json).refundedMinor, order.refundedMinor);
   assert.equal(db.prepare('SELECT count(*) n FROM webhooks').get()?.n, 1);
-  assert.equal(db.prepare('SELECT count(*) n FROM audit_log').get()?.n, 1);
+  db.close();
+});
+
+test('verified refund webhook settles only a matching PayPal refund and updates the order once', async () => {
+  const { db, app, paypal } = setup();
+  const created = await app.request('/v1/demo/session', { method: 'POST' });
+  const sid = (await created.json()).data.sessionId;
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders WHERE session_id=? AND id=?').get(sid, '1042') as {body_json:string}).body_json);
+  const plan: Plan = { id: 'webhook-plan', recallId: 'r', items: [{orderId:order.id,merchantId:order.merchantId,action:'REFUND',amountMinor:100,currency:'USD',reason:'Test',evidence:'Test',lineSkus:[order.lines[0].sku]}], totals:{USD:100}, planHash:'' };
+  plan.planHash = hashPlan(plan);
+  db.prepare('INSERT INTO plans(id,session_id,recall_id,body_json,plan_hash,created_at) VALUES(?,?,?,?,?,?)').run(plan.id,sid,'r',JSON.stringify(plan),plan.planHash,Date.now());
+  db.prepare('INSERT INTO approvals(plan_id,session_id,plan_hash,approver,budget_json,created_at) VALUES(?,?,?,?,?,?)').run(plan.id,sid,plan.planHash,'Human',JSON.stringify({USD:100}),Date.now());
+  const refund = await paypal.refundCapture(order.captureId,100,'USD','webhook-key');
+  db.prepare('INSERT INTO outbox(session_id,plan_id,order_id,action,amount_minor,currency,idempotency_key,status,paypal_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+    .run(sid,plan.id,order.id,'REFUND',100,'USD','webhook-key','UNKNOWN',refund.id,Date.now(),Date.now());
+  const event = {id:'webhook-event',event_type:'PAYMENT.CAPTURE.REFUNDED',resource:{id:refund.id}};
+  const send = () => app.request('/webhooks/paypal',{method:'POST',headers:{'Content-Type':'application/json','x-fake-signature':'valid'},body:JSON.stringify(event)});
+  assert.equal((await send()).status,200);
+  assert.equal((await send()).status,200);
+  assert.equal(db.prepare('SELECT status FROM outbox WHERE plan_id=?').get(plan.id)?.status,'SUCCEEDED');
+  assert.equal(JSON.parse((db.prepare('SELECT body_json FROM orders WHERE session_id=? AND id=?').get(sid,order.id) as {body_json:string}).body_json).refundedMinor,order.refundedMinor+100);
+  assert.equal(db.prepare("SELECT count(*) n FROM audit_log WHERE entity=?").get(`order:${order.id}`)?.n,1);
   db.close();
 });
 
@@ -135,7 +186,37 @@ test('supplier invoice approval creates and sends the settled amount through Pay
   const repeated = await app.request('/v1/supplier-invoices', { method: 'POST', headers: invoiceHeaders, body: JSON.stringify({ approvalId }) });
   assert.equal(repeated.status, 409);
   assert.equal(db.prepare('SELECT count(*) n FROM supplier_invoices').get()?.n, 1);
-  assert.equal(db.prepare("SELECT count(*) n FROM audit_log WHERE session_id=? AND entity LIKE 'invoice:%'").get(sid)?.n, 1);
+  const transitions = db.prepare("SELECT before_json,after_json FROM audit_log WHERE session_id=? AND entity LIKE 'invoice:%' ORDER BY id").all(sid) as {before_json:string;after_json:string}[];
+  assert.deepEqual(transitions.map(row => [JSON.parse(row.before_json).status ?? null, JSON.parse(row.after_json).status]),
+    [[null, 'APPROVED'], ['APPROVED', 'CREATED'], ['CREATED', 'SENT']]);
+  db.close();
+});
+
+test('an uncertain invoice send remains recorded for review with its PayPal id', async () => {
+  class UncertainInvoice extends FakePayPal {
+    async createInvoice(): Promise<{id:string}> { return {id:'paypal-uncertain'}; }
+    async sendInvoice(): Promise<void> { throw new Error('timeout after send'); }
+  }
+  const db = createDatabase(':memory:');
+  const app = createApp({db,paypal:new UncertainInvoice(),ai:new FakeAiProvider(),config:loadConfig({})});
+  const created = await app.request('/v1/demo/session',{method:'POST'});
+  const sid = (await created.json()).data.sessionId;
+  const headers = {Cookie:created.headers.get('set-cookie')!.split(';')[0],'Content-Type':'application/json'};
+  const plan = {id:'invoice-plan',recallId:'r',items:[],totals:{},planHash:''};
+  plan.planHash=hashPlan(plan);
+  db.prepare('INSERT INTO plans(id,session_id,recall_id,body_json,plan_hash,created_at) VALUES(?,?,?,?,?,?)').run(plan.id,sid,'r',JSON.stringify(plan),plan.planHash,Date.now());
+  db.prepare('INSERT INTO outbox(session_id,plan_id,order_id,action,amount_minor,currency,idempotency_key,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+    .run(sid,plan.id,'o','REFUND',100,'USD','invoice-uncertain-key','SUCCEEDED',Date.now(),Date.now());
+  const approval = await app.request('/v1/supplier-invoices/approve',{method:'POST',headers,body:JSON.stringify({planId:plan.id,planHash:plan.planHash,currency:'USD',recipientEmail:'supplier@example.test',approver:'Human',budgetMinor:100})});
+  const approvalId = (await approval.json()).data.id;
+  assert.equal((await app.request('/v1/supplier-invoices',{method:'POST',headers,body:JSON.stringify({approvalId})})).status,502);
+  const invoice = db.prepare('SELECT status,paypal_id FROM supplier_invoices').get();
+  assert.equal(invoice?.status,'UNKNOWN');
+  assert.equal(invoice?.paypal_id,'paypal-uncertain');
+  const transitions = db.prepare("SELECT before_json,after_json FROM audit_log WHERE entity LIKE 'invoice:%' ORDER BY id").all() as {before_json:string;after_json:string}[];
+  assert.deepEqual(transitions.map(row => [JSON.parse(row.before_json).status ?? null, JSON.parse(row.after_json).status]),
+    [[null, 'APPROVED'], ['APPROVED', 'CREATED'], ['CREATED', 'UNKNOWN']]);
+  assert.equal((await app.request('/v1/supplier-invoices',{method:'POST',headers,body:JSON.stringify({approvalId})})).status,409);
   db.close();
 });
 

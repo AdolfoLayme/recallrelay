@@ -21,6 +21,28 @@ function changeState(db: DatabaseSync, sessionId: string, rowId: number, state: 
   } catch (error) { db.exec('ROLLBACK'); throw error; }
 }
 
+function settleRefund(db: DatabaseSync, sessionId: string, row: Ledger, paypalId?: string): void {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const before = db.prepare('SELECT status, paypal_id FROM outbox WHERE id=? AND session_id=?').get(row.id, sessionId) as { status: string; paypal_id: string | null };
+    if (before.status === 'SUCCEEDED') { db.exec('COMMIT'); return; }
+    const orderRow = db.prepare('SELECT body_json FROM orders WHERE id=? AND session_id=?').get(row.order_id, sessionId) as { body_json: string };
+    const order = JSON.parse(orderRow.body_json) as Order;
+    const refundedMinor = order.refundedMinor + row.amount_minor;
+    const gross = order.lines.reduce((n, line) => n + line.quantity * line.unitPriceMinor + line.taxMinor, 0);
+    if (refundedMinor > gross) throw new Error('Refund exceeds order balance');
+    const next = { ...order, refundedMinor, status: refundedMinor === gross ? 'REFUNDED' : 'PARTIALLY_REFUNDED' };
+    db.prepare('UPDATE orders SET body_json=? WHERE id=? AND session_id=?').run(JSON.stringify(next), row.order_id, sessionId);
+    db.prepare('UPDATE outbox SET status=?, paypal_id=COALESCE(?,paypal_id), updated_at=? WHERE id=? AND session_id=?')
+      .run('SUCCEEDED', paypalId ?? null, Date.now(), row.id, sessionId);
+    db.prepare('INSERT INTO audit_log(session_id,actor,at,entity,before_json,after_json) VALUES(?,?,?,?,?,?)')
+      .run(sessionId, 'executor', Date.now(), `outbox:${row.id}`, JSON.stringify(before), JSON.stringify({ status: 'SUCCEEDED', paypalId }));
+    db.prepare('INSERT INTO audit_log(session_id,actor,at,entity,before_json,after_json) VALUES(?,?,?,?,?,?)')
+      .run(sessionId, 'executor', Date.now(), `order:${row.order_id}`, JSON.stringify({ status: order.status, refundedMinor: order.refundedMinor }), JSON.stringify({ status: next.status, refundedMinor }));
+    db.exec('COMMIT');
+  } catch (error) { db.exec('ROLLBACK'); throw error; }
+}
+
 function flagReview(db: DatabaseSync, sessionId: string, rowId: number, problem: string, detail: Record<string, unknown> = {}): void {
   const body = { outboxId: rowId, problem, ...detail };
   const existing = db.prepare("SELECT 1 FROM review_queue WHERE session_id=? AND kind='PAYMENT' AND body_json=? LIMIT 1")
@@ -55,14 +77,27 @@ function reserve(db: DatabaseSync, sessionId: string, planId: string, recallId: 
   try {
     const old = db.prepare('SELECT * FROM outbox WHERE idempotency_key=?').get(key) as Ledger | undefined;
     if (old) { db.exec('COMMIT'); return undefined; }
-    const spent = db.prepare(`SELECT COALESCE(SUM(amount_minor),0) AS amount FROM outbox WHERE session_id=? AND currency=? AND status IN ('SENDING','UNKNOWN','SUCCEEDED')`)
-      .get(sessionId, item.currency) as { amount: number };
-    if (item.amountMinor > 0 && spent.amount + item.amountMinor > (budget[item.currency] ?? -1)) { db.exec('COMMIT'); return undefined; }
-    const session = db.prepare('SELECT actions_count FROM sessions WHERE id=?').get(sessionId) as { actions_count: number } | undefined;
-    if (!session || session.actions_count >= 50) { db.exec('COMMIT'); return undefined; }
+    const prior = db.prepare(`SELECT o.action, o.status, p.body_json FROM outbox o JOIN plans p ON p.id=o.plan_id
+      WHERE o.session_id=? AND o.order_id=? AND o.status IN ('SENDING','UNKNOWN','SUCCEEDED')`).all(sessionId, item.orderId) as { action: string; status: string; body_json: string }[];
+    if (prior.some(entry => {
+      const previous = (JSON.parse(entry.body_json) as Plan).items.find(value => value.orderId === item.orderId && value.action === entry.action);
+      return previous?.lineSkus.some(sku => item.lineSkus.includes(sku));
+    })) { db.exec('COMMIT'); return undefined; }
     const orderRow = db.prepare('SELECT body_json FROM orders WHERE id=? AND session_id=?').get(item.orderId, sessionId) as { body_json: string } | undefined;
     if (!orderRow) throw new Error('Order not found in session');
     const order = JSON.parse(orderRow.body_json) as Order & { payoutEmail?: string };
+    const paymentId = item.action === 'VOID_AUTHORIZATION' ? order.authorizationId : order.captureId;
+    const paymentField = item.action === 'VOID_AUTHORIZATION' ? '$.authorizationId' : '$.captureId';
+    if (paymentId && db.prepare(`SELECT 1 FROM outbox o JOIN orders x ON x.id=o.order_id AND x.session_id=o.session_id
+      WHERE o.session_id=? AND o.order_id<>? AND o.status IN ('SENDING','UNKNOWN','SUCCEEDED')
+      AND json_extract(x.body_json, ?) = ? LIMIT 1`).get(sessionId, item.orderId, paymentField, paymentId)) {
+      db.exec('COMMIT'); return undefined;
+    }
+    const spent = db.prepare(`SELECT COALESCE(SUM(amount_minor),0) AS amount FROM outbox WHERE session_id=? AND plan_id=? AND currency=? AND status IN ('SENDING','UNKNOWN','SUCCEEDED')`)
+      .get(sessionId, planId, item.currency) as { amount: number };
+    if (item.amountMinor > 0 && spent.amount + item.amountMinor > (budget[item.currency] ?? -1)) { db.exec('COMMIT'); return undefined; }
+    const session = db.prepare('SELECT actions_count FROM sessions WHERE id=?').get(sessionId) as { actions_count: number } | undefined;
+    if (!session || session.actions_count >= 50) { db.exec('COMMIT'); return undefined; }
     const skip = order.merchantId !== item.merchantId || order.status === 'REFUNDED' || order.status === 'VOIDED' ||
       (item.action === 'REFUND' && (!order.captureId || order.refundedMinor + item.amountMinor > order.lines.reduce((n, l) => n + l.quantity * l.unitPriceMinor + l.taxMinor, 0))) ||
       (item.action === 'VOID_AUTHORIZATION' && !order.authorizationId) ||
@@ -86,12 +121,30 @@ export async function executePlan(db: DatabaseSync, source: GatewaySource, sessi
   const items = [...plan.items].sort((a, b) => (positions.get(a.orderId) ?? Number.MAX_SAFE_INTEGER) - (positions.get(b.orderId) ?? Number.MAX_SAFE_INTEGER));
   for (const item of items) {
     if (!['REFUND', 'VOID_AUTHORIZATION', 'PAYOUT'].includes(item.action)) continue;
+    let capture: Awaited<ReturnType<PayPalGateway['getCapture']>> | undefined;
+    if (item.action === 'REFUND') {
+      const current = db.prepare('SELECT body_json FROM orders WHERE id=? AND session_id=?').get(item.orderId, sessionId) as { body_json: string } | undefined;
+      const order = current && JSON.parse(current.body_json) as Order;
+      if (order?.gateway === 'sandbox' && order.captureId) {
+        try { capture = await forOrder(source, order).getCapture(order.captureId); }
+        catch { continue; }
+      }
+    }
     const row = reserve(db, sessionId, planId, plan.recallId, item, budget);
     if (!row || row.status === 'SKIPPED') continue;
     const orderRow = db.prepare('SELECT body_json FROM orders WHERE id=? AND session_id=?').get(item.orderId, sessionId) as { body_json: string };
     const order = JSON.parse(orderRow.body_json) as Order & { payoutEmail?: string };
     const gateway = forOrder(source, order);
     try {
+      if (item.action === 'REFUND' && order.gateway === 'sandbox') {
+        const gross = order.lines.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor + line.taxMinor, 0);
+        if (!capture || capture.id !== order.captureId || capture.payeeMerchantId !== order.merchantId ||
+          capture.amountMinor !== gross || capture.currency !== order.currency) {
+          flagReview(db, sessionId, row.id, 'Capture does not match the order');
+          changeState(db, sessionId, row.id, 'FAILED');
+          continue;
+        }
+      }
       const response = item.action === 'REFUND'
         ? await gateway.refundCapture(order.captureId!, item.amountMinor, item.currency, row.idempotency_key)
         : item.action === 'VOID_AUTHORIZATION'
@@ -105,12 +158,8 @@ export async function executePlan(db: DatabaseSync, source: GatewaySource, sessi
         flagReview(db, sessionId, row.id, payout.reason ?? 'Payout not claimed yet', { status: payout.status, batchId: response.id });
       const completed = item.action === 'REFUND' ? response.status === 'COMPLETED' && refundMatches
         : item.action === 'VOID_AUTHORIZATION' ? response.status === 'VOIDED' : payout?.status === 'SUCCESS';
-      changeState(db, sessionId, row.id, completed ? 'SUCCEEDED' : 'UNKNOWN', response.id);
-      if (completed && item.action === 'REFUND') {
-        const next = { ...order, refundedMinor: order.refundedMinor + item.amountMinor };
-        next.status = next.refundedMinor >= next.lines.reduce((n, l) => n + l.quantity * l.unitPriceMinor + l.taxMinor, 0) ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
-        db.prepare('UPDATE orders SET body_json=? WHERE id=? AND session_id=?').run(JSON.stringify(next), order.id, sessionId);
-      }
+      if (completed && item.action === 'REFUND') settleRefund(db, sessionId, row, response.id);
+      else changeState(db, sessionId, row.id, completed ? 'SUCCEEDED' : 'UNKNOWN', response.id);
     } catch (error) {
       changeState(db, sessionId, row.id, error instanceof PayPalError && error.status < 500 && !error.uncertain ? 'FAILED' : 'UNKNOWN');
     }
@@ -130,13 +179,9 @@ export async function reconcilePlan(db: DatabaseSync, source: GatewaySource, ses
         if (row.paypal_id) {
           const refund = await gateway.getRefund(row.paypal_id);
           if (refund.status === 'COMPLETED' && refund.amountMinor === row.amount_minor && refund.currency === row.currency)
-            changeState(db, sessionId, row.id, 'SUCCEEDED');
+            settleRefund(db, sessionId, row);
           else if (refund.status === 'COMPLETED') flagReview(db, sessionId, row.id, 'PayPal refund amount mismatch', { requestedMinor: row.amount_minor, returnedMinor: refund.amountMinor ?? null });
-        } else {
-          const capture = await gateway.getCapture(order.captureId);
-          if (capture.payeeMerchantId === order.merchantId && capture.refundedMinor >= order.refundedMinor + row.amount_minor)
-            changeState(db, sessionId, row.id, 'SUCCEEDED');
-        }
+        } else flagReview(db, sessionId, row.id, 'Refund outcome unknown; PayPal refund ID unavailable');
       } else if (row.action === 'VOID_AUTHORIZATION' && order.authorizationId) {
         const state = await gateway.getAuthorization(order.authorizationId);
         if (state.status === 'VOIDED') changeState(db, sessionId, row.id, 'SUCCEEDED');

@@ -4,9 +4,10 @@ import { createDatabase, savePlan, approvePlan } from '../src/db.ts';
 import { buildPlan } from '../src/plan.ts';
 import { executePlan, reconcilePlan } from '../src/executor.ts';
 import { FakePayPal } from '../src/paypal/fake.ts';
+import { PayPalError } from '../src/paypal/gateway.ts';
 import type { Order } from '../src/types.ts';
 
-function setup(refundedMinor = 0, budget = 1000, merchantId = 'm') {
+function setup(refundedMinor = 0, budget = 1000, merchantId = 'm', captureTotal = 1000) {
   const db = createDatabase(':memory:');
   db.prepare("INSERT INTO sessions(id, expires_at) VALUES('s', 9999999999999)").run();
   const order: Order = {
@@ -20,7 +21,7 @@ function setup(refundedMinor = 0, budget = 1000, merchantId = 'm') {
   savePlan(db, 's', plan);
   approvePlan(db, 's', plan.id, plan.planHash, 'Human', { USD: budget });
   const paypal = new FakePayPal();
-  paypal.registerCapture('cap', 2000, 'USD', refundedMinor, merchantId);
+  paypal.registerCapture('cap', captureTotal, 'USD', refundedMinor, merchantId);
   return { db, plan, paypal };
 }
 
@@ -34,14 +35,100 @@ test('repeat and parallel execution create only one PayPal refund', async () => 
   db.close();
 });
 
-test('timeout after success remains unknown and reconciles without repost', async () => {
+test('timeout after success stays unknown without a PayPal refund id and does not repost', async () => {
   const { db, plan, paypal } = setup();
   paypal.nextFailure = 'timeout-after-success';
   await executePlan(db, paypal, 's', plan.id);
   assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'UNKNOWN');
   await reconcilePlan(db, paypal, 's', plan.id);
-  assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'SUCCEEDED');
+  assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'UNKNOWN');
   assert.equal(paypal.sentCount, 1);
+  assert.equal((JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order).refundedMinor, 0);
+  assert.match(String(db.prepare('SELECT body_json FROM review_queue').get()?.body_json), /refund ID unavailable/i);
+  db.close();
+});
+
+test('a second recall cannot refund the same order line again', async () => {
+  const { db, plan, paypal } = setup();
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order;
+  order.lines.push({ sku: 'OTHER', name: 'Other item', quantity: 1, unitPriceMinor: 1000, taxMinor: 0 });
+  db.prepare('UPDATE orders SET body_json=?').run(JSON.stringify(order));
+  const second = buildPlan('second-recall', [{ order, match: { score: 1, lineSkus: ['S'], reason: 'sku' }, evidence: 'Second notice' }], new Date('2026-11-03'));
+  savePlan(db, 's', second);
+  approvePlan(db, 's', second.id, second.planHash, 'Human', { USD: 2000 });
+  await executePlan(db, paypal, 's', plan.id);
+  await executePlan(db, paypal, 's', second.id);
+  assert.equal(paypal.sentCount, 1);
+  assert.equal(db.prepare('SELECT count(*) n FROM outbox WHERE status=?').get('SUCCEEDED')?.n, 1);
+  db.close();
+});
+
+test('the same PayPal capture cannot be refunded through two imported order ids', async () => {
+  const { db, plan, paypal } = setup();
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order;
+  const duplicate = { ...order, id: 'duplicate-order' };
+  db.prepare('INSERT INTO orders(id,session_id,body_json) VALUES(?,?,?)').run(duplicate.id, 's', JSON.stringify(duplicate));
+  const second = buildPlan('other-recall', [{ order: duplicate, match: { score: 1, lineSkus: ['S'], reason: 'sku' }, evidence: 'Notice' }], new Date('2026-11-03'));
+  savePlan(db, 's', second);
+  approvePlan(db, 's', second.id, second.planHash, 'Human', { USD: 1000 });
+  await executePlan(db, paypal, 's', plan.id);
+  await executePlan(db, paypal, 's', second.id);
+  assert.equal(paypal.sentCount, 1);
+  assert.equal(db.prepare("SELECT count(*) n FROM outbox WHERE status='SUCCEEDED'").get()?.n, 1);
+  db.close();
+});
+
+test('a separate approved plan can settle a different line within its own currency budget', async () => {
+  const { db, plan, paypal } = setup(0, 1000, 'm', 2000);
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order;
+  order.lines.push({ sku: 'OTHER', name: 'Other item', quantity: 1, unitPriceMinor: 1000, taxMinor: 0 });
+  db.prepare('UPDATE orders SET body_json=?').run(JSON.stringify(order));
+  const second = buildPlan('other-recall', [{ order, match: { score: 1, lineSkus: ['OTHER'], reason: 'sku' }, evidence: 'Other notice' }], new Date('2026-11-03'));
+  savePlan(db, 's', second);
+  approvePlan(db, 's', second.id, second.planHash, 'Human', { USD: 1000 });
+  await executePlan(db, paypal, 's', plan.id);
+  await executePlan(db, paypal, 's', second.id);
+  assert.equal(paypal.sentCount, 2);
+  assert.equal(db.prepare("SELECT SUM(amount_minor) n FROM outbox WHERE status='SUCCEEDED'").get()?.n, 2000);
+  db.close();
+});
+
+test('sandbox refund cannot be sent for a capture owned by a different merchant', async () => {
+  const { db, plan, paypal } = setup(0, 1000, 'another-merchant');
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order;
+  db.prepare('UPDATE orders SET body_json=?').run(JSON.stringify({ ...order, gateway: 'sandbox' }));
+  await executePlan(db, paypal, 's', plan.id);
+  assert.equal(paypal.sentCount, 0);
+  assert.notEqual(db.prepare('SELECT status FROM outbox').get()?.status, 'SUCCEEDED');
+  db.close();
+});
+
+test('a failed preflight capture read can retry because no refund was sent', async () => {
+  const { db, plan, paypal } = setup();
+  const order = JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order;
+  db.prepare('UPDATE orders SET body_json=?').run(JSON.stringify({ ...order, gateway: 'sandbox' }));
+  const originalGetCapture = paypal.getCapture.bind(paypal);
+  let reads = 0;
+  paypal.getCapture = async captureId => {
+    if (++reads === 1) throw new PayPalError('Preflight read unavailable', 0, true);
+    return originalGetCapture(captureId);
+  };
+  await executePlan(db, paypal, 's', plan.id);
+  assert.equal(paypal.sentCount, 0);
+  await executePlan(db, paypal, 's', plan.id);
+  assert.equal(paypal.sentCount, 1);
+  assert.equal(db.prepare("SELECT status FROM outbox WHERE action='REFUND'").get()?.status, 'SUCCEEDED');
+  db.close();
+});
+
+test('an unrelated external refund cannot confirm an unknown refund with no PayPal id', async () => {
+  const { db, plan, paypal } = setup();
+  paypal.nextFailure = 'server-error';
+  await executePlan(db, paypal, 's', plan.id);
+  await paypal.refundCapture('cap', 1000, 'USD', 'external-refund');
+  await reconcilePlan(db, paypal, 's', plan.id);
+  assert.equal(db.prepare('SELECT status FROM outbox').get()?.status, 'UNKNOWN');
+  assert.equal((JSON.parse((db.prepare('SELECT body_json FROM orders').get() as { body_json: string }).body_json) as Order).refundedMinor, 0);
   db.close();
 });
 
