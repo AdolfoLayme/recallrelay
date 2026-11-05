@@ -102,6 +102,6 @@ test('capture lookup exposes the verified sandbox payee for reconciliation', asy
     throw new Error(`Unexpected request: ${url}`);
   } });
   assert.deepEqual(await paypal.getCapture('cap-1'), {
-    id: 'cap-1', status: 'REFUNDED', refundedMinor: 1200, payeeMerchantId: 'merchant-1',
+    id: 'cap-1', status: 'REFUNDED', refundedMinor: 1200, amountMinor: 1200, currency: 'USD', payeeMerchantId: 'merchant-1',
   });
 });

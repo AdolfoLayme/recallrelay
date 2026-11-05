@@ -9,7 +9,7 @@ export class PayPalError extends Error {
 }
 
 export type PayPalResult = { id: string; status: string; amountMinor?: number; currency?: string; itemId?: string; reason?: string };
-export type CaptureState = { id: string; status: string; refundedMinor: number; payeeMerchantId?: string };
+export type CaptureState = { id: string; status: string; refundedMinor: number; amountMinor?: number; currency?: string; payeeMerchantId?: string };
 
 export interface PayPalGateway {
   createOrder(intent: 'CAPTURE' | 'AUTHORIZE', items: { name: string; sku: string; quantity: number; unitPriceMinor: number; currency: string }[], requestId: string): Promise<unknown>;

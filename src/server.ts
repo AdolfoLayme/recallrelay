@@ -71,6 +71,18 @@ function audit(db: DatabaseSync, sessionId: string, actor: string, entity: strin
   db.prepare('INSERT INTO audit_log(session_id,actor,at,entity,before_json,after_json) VALUES(?,?,?,?,?,?)')
     .run(sessionId, actor, Date.now(), entity, JSON.stringify(before), JSON.stringify(after));
 }
+function setInvoiceState(db: DatabaseSync, sessionId: string, invoiceId: string, actor: string, status: string, paypalId?: string): void {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const before = db.prepare('SELECT status,paypal_id FROM supplier_invoices WHERE id=? AND session_id=?')
+      .get(invoiceId, sessionId) as { status: string; paypal_id: string | null };
+    db.prepare('UPDATE supplier_invoices SET status=?,paypal_id=COALESCE(?,paypal_id) WHERE id=? AND session_id=?')
+      .run(status, paypalId ?? null, invoiceId, sessionId);
+    audit(db, sessionId, actor, `invoice:${invoiceId}`, { status, paypalId: paypalId ?? before.paypal_id },
+      { status: before.status, paypalId: before.paypal_id });
+    db.exec('COMMIT');
+  } catch (error) { db.exec('ROLLBACK'); throw error; }
+}
 function review(db: DatabaseSync, sessionId: string, kind: string, detail: unknown): void {
   const reviewId = crypto.randomUUID();
   db.prepare('INSERT INTO review_queue(id,session_id,kind,body_json) VALUES(?,?,?,?)')
@@ -503,6 +515,7 @@ export function createApp(deps: Dependencies): App {
     for (const raw of transactions) {
       const converted = convertTransaction(raw, input.merchantId);
       if (converted.order) {
+        converted.order.gateway = deps.config.paypalMode;
         const inserted = deps.db.prepare('INSERT OR IGNORE INTO orders(id,session_id,body_json) VALUES(?,?,?)')
           .run(converted.order.id, session(c), JSON.stringify(converted.order));
         if (inserted.changes) {
@@ -522,8 +535,14 @@ export function createApp(deps: Dependencies): App {
     const input = await body(c, z.object({ orders: z.array(orderSchema).min(1).max(100) }));
     const insert = deps.db.prepare('INSERT INTO orders(id,session_id,body_json) VALUES(?,?,?)');
     for (const order of input.orders) {
-      if (order.captureId && deps.config.paypalMode === 'sandbox') await deps.paypal.getCapture(order.captureId);
-      insert.run(order.id, session(c), JSON.stringify(order));
+      if (order.captureId && deps.config.paypalMode === 'sandbox') {
+        const capture = await deps.paypal.getCapture(order.captureId);
+        const gross = order.lines.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor + line.taxMinor, 0);
+        if (capture.id !== order.captureId || capture.payeeMerchantId !== order.merchantId ||
+          capture.amountMinor !== gross || capture.currency !== order.currency)
+          throw new ApiError('CAPTURE_MISMATCH', 'Capture does not match the imported order', 409);
+      }
+      insert.run(order.id, session(c), JSON.stringify({ ...order, gateway: deps.config.paypalMode }));
       if (order.captureId && deps.paypal instanceof FakePayPal) deps.paypal.registerCapture(order.captureId,
         order.lines.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor + line.taxMinor, 0), order.currency, order.refundedMinor, order.merchantId);
     }
@@ -652,17 +671,24 @@ export function createApp(deps: Dependencies): App {
       approval.amount_minor !== settledInvoiceAmount(sid, plan.id, approval.currency))
       throw new ApiError('INVOICE_APPROVAL_STALE', 'Plan or settled amount changed after invoice approval', 409);
     const invoiceId = crypto.randomUUID();
-    const inserted = deps.db.prepare('INSERT OR IGNORE INTO supplier_invoices(id,session_id,plan_id,currency,amount_minor,status) VALUES(?,?,?,?,?,?)')
-      .run(invoiceId, sid, plan.id, approval.currency, approval.amount_minor, 'APPROVED');
-    if (!inserted.changes) throw new ApiError('INVOICE_EXISTS', 'Invoice already created for this plan and currency', 409);
+    deps.db.exec('BEGIN IMMEDIATE');
+    try {
+      const inserted = deps.db.prepare('INSERT OR IGNORE INTO supplier_invoices(id,session_id,plan_id,currency,amount_minor,status) VALUES(?,?,?,?,?,?)')
+        .run(invoiceId, sid, plan.id, approval.currency, approval.amount_minor, 'APPROVED');
+      if (!inserted.changes) throw new ApiError('INVOICE_EXISTS', 'Invoice already created for this plan and currency', 409);
+      audit(deps.db, sid, approval.approver, `invoice:${invoiceId}`, { status: 'APPROVED', planHash: approval.plan_hash, amountMinor: approval.amount_minor });
+      deps.db.exec('COMMIT');
+    } catch (error) { deps.db.exec('ROLLBACK'); throw error; }
     try {
       const invoice = await deps.paypal.createInvoice(approval.recipient_email, approval.currency, approval.amount_minor, `Recall reimbursement for ${plan.recallId}`);
-      deps.db.prepare('UPDATE supplier_invoices SET paypal_id=?, status=? WHERE id=? AND session_id=?').run(invoice.id, 'CREATED', invoiceId, sid);
+      setInvoiceState(deps.db, sid, invoiceId, approval.approver, 'CREATED', invoice.id);
       await deps.paypal.sendInvoice(invoice.id);
-      deps.db.prepare('UPDATE supplier_invoices SET status=? WHERE id=? AND session_id=?').run('SENT', invoiceId, sid);
-      deps.db.prepare('INSERT INTO audit_log(session_id,actor,at,entity,before_json,after_json) VALUES(?,?,?,?,?,?)')
-        .run(sid, approval.approver, Date.now(), `invoice:${invoiceId}`, JSON.stringify({ status: 'APPROVED' }), JSON.stringify({ status: 'SENT', planHash: approval.plan_hash, amountMinor: approval.amount_minor }));
-    } catch { throw new ApiError('INVOICE_SEND_FAILED', 'Invoice status requires manual review', 502); }
+      setInvoiceState(deps.db, sid, invoiceId, approval.approver, 'SENT');
+    } catch {
+      setInvoiceState(deps.db, sid, invoiceId, 'system', 'UNKNOWN');
+      review(deps.db, sid, 'INVOICE', { invoiceId, planId: plan.id, reason: 'Invoice send outcome unknown' });
+      throw new ApiError('INVOICE_SEND_FAILED', 'Invoice status requires manual review', 502);
+    }
     return data(c, { id: invoiceId, amountMinor: approval.amount_minor, currency: approval.currency, status: 'SENT', planHash: approval.plan_hash }, 201);
   });
 
@@ -673,19 +699,21 @@ export function createApp(deps: Dependencies): App {
     if (!(await deps.paypal.verifyWebhook(c.req.raw.headers, event))) return failure(c, 'INVALID_SIGNATURE', 'Webhook signature invalid', 400);
     const resourceId = event.resource.id ?? '';
     const key = event.resource.sender_item_id ?? '';
-    const row = deps.db.prepare('SELECT id,session_id,status FROM outbox WHERE paypal_id=? OR substr(idempotency_key,1,63)=? LIMIT 1')
-      .get(resourceId, key) as { id: number; session_id: string; status: string } | undefined;
+    const row = deps.db.prepare("SELECT id,session_id,plan_id,action,status FROM outbox WHERE (paypal_id=? AND ?<>'') OR (substr(idempotency_key,1,63)=? AND ?<>'') LIMIT 1")
+      .get(resourceId, resourceId, key, key) as { id: number; session_id: string; plan_id: string; action: string; status: string } | undefined;
     if (!row) return data(c, { accepted: true, changed: false });
     const inserted = deps.db.prepare('INSERT OR IGNORE INTO webhooks(event_id,session_id,received_at) VALUES(?,?,?)').run(event.id, row.session_id, Date.now());
     if (!inserted.changes) return data(c, { accepted: true, duplicate: true });
-    const supported = ['PAYMENT.CAPTURE.REFUNDED', 'PAYMENT.AUTHORIZATION.VOIDED', 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED', 'PAYMENT.PAYOUTS-ITEM.FAILED'];
-    if (supported.includes(event.event_type)) {
-      const status = event.event_type.endsWith('.FAILED') ? 'FAILED' : 'SUCCEEDED';
-      deps.db.prepare('UPDATE outbox SET status=?,updated_at=? WHERE id=? AND session_id=?').run(status, Date.now(), row.id, row.session_id);
-      deps.db.prepare('INSERT INTO audit_log(session_id,actor,at,entity,before_json,after_json) VALUES(?,?,?,?,?,?)')
-        .run(row.session_id, 'paypal-webhook', Date.now(), `outbox:${row.id}`, JSON.stringify({ status: row.status }), JSON.stringify({ status }));
-    }
-    return data(c, { accepted: true });
+    const expectedAction: Record<string, string> = {
+      'PAYMENT.CAPTURE.REFUNDED': 'REFUND',
+      'PAYMENT.AUTHORIZATION.VOIDED': 'VOID_AUTHORIZATION',
+      'PAYMENT.PAYOUTS-ITEM.SUCCEEDED': 'PAYOUT',
+      'PAYMENT.PAYOUTS-ITEM.FAILED': 'PAYOUT',
+    };
+    if (expectedAction[event.event_type] === row.action && row.status !== 'SUCCEEDED')
+      await reconcilePlan(deps.db, gatewayForOrder, row.session_id, row.plan_id, true);
+    const current = deps.db.prepare('SELECT status FROM outbox WHERE id=? AND session_id=?').get(row.id, row.session_id) as { status: string };
+    return data(c, { accepted: true, changed: current.status !== row.status });
   });
   app.get('/assets/*', serveStatic({ root: './web/dist' }));
   app.get('/recalls-preview.png', serveStatic({ path: './web/dist/recalls-preview.png' }));

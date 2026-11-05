@@ -1,31 +1,52 @@
 # RecallRelay
 
-RecallRelay turns product recall notices into reviewable settlement plans. The merchant dashboard follows the evidence from the official notice through blocked checkout, approval, execution, review, and buyer remedy. AI extracts facts and drafts text; policy code decides actions and amounts. A human must approve a plan hash and per-currency budget before the executor sends a money action.
+RecallRelay helps a PayPal merchant respond to a product recall. It connects an official notice to affected orders, blocks another sale, and prepares a settlement plan. A person approves the exact plan and a budget for each currency before any refund, authorization void, or payout is sent. AI extracts product facts and drafts buyer notices; deterministic code matches orders, chooses actions, and computes amounts.
 
-## Setup
+**Live demo:** https://recallrelay.onrender.com — a free Render service can take about a minute to wake after inactivity. It runs against the PayPal sandbox with simulated orders, labeled in the app: no real money moves.
 
-Requires Node 26 and pnpm 12. Run `pnpm install --frozen-lockfile --ignore-scripts`, then `pnpm typecheck`, `pnpm test`, and `pnpm build`. No credentials are needed for fake mode. `pnpm demo` runs an isolated fictional 12-order scenario in memory and prints its timeline and totals. `pnpm start` serves the app and API on port 3000; `pnpm dev` watches code changes. The API reports `meta.paypalMode` on every response.
+## Judge walkthrough: under three minutes
 
-## Test the demo
+1. Open the demo and select **Start the demo**. Open the Lumen Mini Space Heater recall. Read the official notice and select **Stop sale**.
+2. Select **Review settlement plan**. Inspect the 12 fictional orders, the plan hash, and the separate currency budgets. Approve the plan and budgets.
+3. Open **Refund window** and move the urgent order to the front. Open **Settlement run** and execute the approved plan. Inspect PayPal references, the review queue, and the supplier invoice approval. The simulated run settles seven actions: refunds, payouts, and an authorization void.
+4. Open the buyer notice. Remove the flagged risk-softening sentence to pass the checker. Visit the store to see checkout blocked for the recalled product. The buyer remedy link also demonstrates a signed choice and settlement.
 
-Run `pnpm start`, open `http://localhost:3000`, and select **Start the demo**. In fake mode, open the recall file, read the notice, stop the sale, review the settlement plan, approve each currency budget, move the urgent order to the front, and run settlement. Review the two flagged orders and the buyer notice. The store shows that checkout is blocked after the sale stop. `pnpm test:e2e` runs this journey and the buyer remedy journey in an isolated headless browser and writes screenshots to `docs/design/actual/`.
+The fake demo's money totals are USD 258, CAD 358, GBP 99, and AUD 189 moved; EUR 208 reserved for buyer choice; and a JPY 12,800 authorization released. These are fictional sandbox-style examples, not customer transactions.
 
-For a real sandbox checkout, configure the server with PayPal sandbox credentials through the deployment environment and use a sandbox buyer account. Enter the buyer's **placeholder email** `<sandbox-buyer@example.test>` and **placeholder password** `<sandbox-buyer-password>` in PayPal's sandbox approval screen. The real test credentials belong only in private testing notes. Open `/store` before stopping the sale, pay for the Lumen Mini Space Heater, then follow the recall flow. The captured order should appear with a Real sandbox badge and its PayPal reference. Stop the sale and verify that `/store` blocks a second checkout before order creation. A human buyer must approve the checkout, so the automated suite uses an injected fake gateway for this path.
+## Run locally
 
-## Modes
+Requires Node 26 and pnpm 12. In a clean checkout:
 
-`PAYPAL_MODE=fake` is the default. It uses deterministic fake AI and PayPal adapters and needs no keys. `PAYPAL_MODE=sandbox` requires `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_WEBHOOK_ID`, and `LINK_SIGNING_SECRET` on the server. The sandbox gateway refuses any base URL other than `https://api-m.sandbox.paypal.com`. `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` select an OpenAI-compatible extractor; otherwise fake extraction is used. See `.env.example` for variable names only. Never put credentials in an HTTP request or source file.
+```bash
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm typecheck
+pnpm test
+pnpm evals
+pnpm demo
+pnpm start
+```
 
-`pnpm sandbox:smoke` is an interactive credentialed test. It requires `PAYPAL_MODE=sandbox`, the PayPal and signing variables above, and `SMOKE_PAYOUT_EMAIL` and `SMOKE_INVOICE_EMAIL`. It creates and captures an order, refunds with an idempotency retry, authorizes and voids another order, searches reporting transactions, creates a payout, and creates and sends an invoice. It prints PayPal sandbox buyer approval links and waits for you to approve each order. It prints a pass or fail for each attempted step. It cannot run in fake mode.
+Open `http://localhost:3000`. No credentials are needed; `PAYPAL_MODE=fake` is the default. `pnpm test:e2e` runs the browser journey in an isolated headless profile. If your checkout path is long, copy it to a short path before running the browser test because the browser's socket path has a length limit.
 
-## Flow
+## PayPal and AI
 
-Create a private demo session with `POST /v1/demo/session` and retain its `HttpOnly` cookie. `POST /v1/sources/refresh` fetches official notices into that session; `POST /v1/orders/sync` searches PayPal reporting transactions, imports complete sale records, and sends records without item details to review. `POST /v1/orders/import` accepts merchant-provided orders. Retrieve recalls, extract facts, match orders, build a plan, then approve its `planHash` and integer minor-unit budgets. Execute the plan and inspect its timeline and audit. Checkout checks a recall blocklist before order creation.
+| Capability | Use in RecallRelay |
+|---|---|
+| Orders API and JavaScript checkout SDK | Create and capture a sandbox checkout order; check the recall blocklist before order creation. |
+| Transaction Search | Import merchant transactions when item details are available; incomplete records enter human review. |
+| Payments API | Refund captures and void authorizations. |
+| Payouts API | Pay an eligible buyer when a capture can no longer be refunded; confirm the payout item outcome. |
+| Invoicing API | Create and send a supplier reimbursement invoice only after a separate approval bound to the plan hash and settled amount. |
+| Webhook signature verification | Verify PayPal events, deduplicate them, and reconcile the corresponding action against PayPal before recording success. |
 
-For an approved `AWAIT_BUYER_CHOICE` item, `POST /v1/remedy-links` takes `{ "planId": "...", "orderId": "..." }` and returns a signed link valid for 30 days. The buyer chooses refund, repair, or replacement through the link. A refund request becomes a refund within 180 days or a payout afterward; payout requires a confirmed PayPal email. Repair and replacement create a task due after 14 days, after which the link can switch to refund. `POST /v1/notices/send` drafts and checks a buyer notice before sending; failing drafts enter review. Fake mode simulates sending, while sandbox mode requires a configured sender. See `docs/SPEC.md` and `docs/REPORT.md` for the contract and current limits.
+The optional OpenAI-compatible provider extracts product identifiers with verbatim evidence from a notice and drafts buyer text. A deterministic fake provider supports the keyless demo. Invalid or unsupported extraction goes to review. The AI cannot approve a plan, set a budget, choose a payment action, or compute an amount.
 
-## Security and limits
+## Architecture and safety
 
-The API limits bodies to 1 MB and requests by IP and session, applies security headers and an origin allowlist, and caps demo AI calls and money actions. Environment files are ignored; `pnpm check:secrets` scans nonignored worktree files and CI also runs gitleaks. Fake demo sessions expire after two hours. PayPal requests go only to the sandbox host.
+The Node/TypeScript server exposes a Hono JSON API and serves a React dashboard. SQLite stores private demo sessions, orders, plans, approvals, an outbox, buyer choices, and an immutable audit log. The policy and money modules use integer minor units, with no currency conversion. An outbox row is reserved before a PayPal call and carries a stable idempotency key; uncertain outcomes stay `UNKNOWN` until a PayPal read confirms them. If a refund times out without returning its PayPal ID, it stays open for manual review because a capture's aggregate refunded amount cannot identify that refund. Signed buyer links expire after 30 days. Demo sessions expire after two hours and cap money sends and AI calls. PayPal's live host is refused; sandbox credentials stay on the server.
 
-Sandbox API actions require real sandbox credentials and buyer approval and are outside the offline browser suite. Recall matching can require human review; official source availability and transaction item details vary. The app does not provide legal advice or claim legal compliance. Read `docs/REPORT.md` for verified behavior and known gaps before using it with any real merchant data.
+## Honest limits
+
+The automated test suite uses fake PayPal and fake AI. The hosted demo runs in PayPal sandbox mode with simulated orders. A real sandbox purchase in `/store` needs interactive buyer approval and is outside the offline browser suite. PayPal Transaction Search item detail availability varies; it returned item codes for this sandbox account after the app was granted access. Some recall matches require human review. The fake notice writer is only partly localized for arbitrary products. This prototype gives no legal advice and does not claim compliance. See [the implementation report](docs/REPORT.md) and [backend specification](docs/SPEC.md) for the detailed contract and verified limits.
+
+MIT licensed; see [LICENSE](LICENSE).
