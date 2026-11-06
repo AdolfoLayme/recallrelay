@@ -2,7 +2,7 @@
 
 RecallRelay helps a PayPal merchant respond to a product recall. It connects an official notice to affected orders, blocks another sale, and prepares a settlement plan. A person approves the exact plan and a budget for each currency before any refund, authorization void, or payout is sent. AI extracts product facts and drafts buyer notices; deterministic code matches orders, chooses actions, and computes amounts.
 
-**Demo video:** https://youtu.be/8U0CaLVPSB4
+**Demo video:** https://youtu.be/gYTMIWTGou4
 
 **Live demo:** https://recallrelay.onrender.com — a free Render service can take about a minute to wake after inactivity. It runs against the PayPal sandbox with simulated orders, labeled in the app: no real money moves.
 
