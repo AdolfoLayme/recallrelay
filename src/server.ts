@@ -699,7 +699,9 @@ export function createApp(deps: Dependencies): App {
     if (deps.config.paypalMode === 'sandbox' && deps.config.paypalWebhookId === 'pending')
       return failure(c, 'WEBHOOK_DISABLED', 'PayPal webhooks are not configured', 503);
     const event = await body(c, z.object({ id, event_type: id, resource: z.object({ id: id.optional(), sender_item_id: id.optional() }).passthrough() }).passthrough());
-    if (!(await deps.paypal.verifyWebhook(c.req.raw.headers, event))) return failure(c, 'INVALID_SIGNATURE', 'Webhook signature invalid', 400);
+    const verified = await deps.paypal.verifyWebhook(c.req.raw.headers, event);
+    console.log(JSON.stringify({ event: 'paypal_webhook', type: event.event_type, verified }));
+    if (!verified) return failure(c, 'INVALID_SIGNATURE', 'Webhook signature invalid', 400);
     const resourceId = event.resource.id ?? '';
     const key = event.resource.sender_item_id ?? '';
     const row = deps.db.prepare("SELECT id,session_id,plan_id,action,status FROM outbox WHERE (paypal_id=? AND ?<>'') OR (substr(idempotency_key,1,63)=? AND ?<>'') LIMIT 1")
