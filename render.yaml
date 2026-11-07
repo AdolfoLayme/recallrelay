@@ -13,7 +13,7 @@ services:
       - key: PAYPAL_CLIENT_SECRET
         sync: false
       - key: PAYPAL_WEBHOOK_ID
-        value: pending
+        sync: false
       - key: LINK_SIGNING_SECRET
         generateValue: true
       - key: AI_BASE_URL
