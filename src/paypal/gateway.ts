@@ -25,5 +25,5 @@ export interface PayPalGateway {
   getRefund(refundId: string): Promise<PayPalResult>;
   createInvoice(recipientEmail: string, currency: string, amountMinor: number, description: string): Promise<{ id: string }>;
   sendInvoice(invoiceId: string): Promise<void>;
-  verifyWebhook(headers: Headers, event: unknown): Promise<boolean>;
+  verifyWebhook(headers: Headers, rawBody: string): Promise<boolean>;
 }
