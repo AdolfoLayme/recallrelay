@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://recallrelay.onrender.com"><img alt="Live demo" src="https://img.shields.io/badge/live_demo-recallrelay.onrender.com-635BFF?style=flat-square"></a>
-  <a href="https://youtu.be/8U0CaLVPSB4"><img alt="Demo video" src="https://img.shields.io/badge/demo_video-2:24-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
+  <a href="https://youtu.be/sJziUsnfG3g"><img alt="Demo video" src="https://img.shields.io/badge/demo_video-2:24-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
   <a href="https://devpost.com/software/recallrelay-kig6ex"><img alt="Devpost" src="https://img.shields.io/badge/Devpost-PayPal_AI_Hackathon-003E54?style=flat-square&logo=devpost&logoColor=white"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/AdolfoLayme/recallrelay?style=flat-square"></a>
   <a href="https://github.com/AdolfoLayme/recallrelay/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/AdolfoLayme/recallrelay/ci.yml?branch=main&style=flat-square&label=CI"></a>
@@ -29,7 +29,7 @@ RecallRelay helps a PayPal merchant respond to a product recall. It connects an 
 
 ## Demo
 
-[![Watch the demo on YouTube](https://img.youtube.com/vi/8U0CaLVPSB4/maxresdefault.jpg)](https://youtu.be/8U0CaLVPSB4)
+[![Watch the demo on YouTube](https://img.youtube.com/vi/sJziUsnfG3g/maxresdefault.jpg)](https://youtu.be/sJziUsnfG3g)
 
 The narration is an AI voice. We're Spanish speakers and our English isn't good enough yet to present this ourselves.
 
