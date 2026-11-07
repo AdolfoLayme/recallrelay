@@ -58,6 +58,18 @@ The narration is an AI voice. We're Spanish speakers and our English isn't good 
 
 The fake demo's money totals are USD 258, CAD 358, GBP 99, and AUD 189 moved; EUR 208 reserved for buyer choice; and a JPY 12,800 authorization released. These are fictional sandbox-style examples, not customer transactions.
 
+## Real PayPal sandbox purchase
+
+The walkthrough above needs no account. To try a real sandbox checkout on the hosted demo, use this PayPal sandbox buyer. It only holds test money.
+
+- **Email:** `sb-m43h3c53769378@personal.example.com`
+- **Password:** `Nl_1zu_D`
+
+1. Open the demo and select **Start the demo**.
+2. Go to [/store](https://recallrelay.onrender.com/store) **before** stopping the sale. After **Stop sale** the store blocks this product on purpose.
+3. Select the PayPal button, log in with the buyer above and pay.
+4. Follow the walkthrough. The order joins the plan marked **Real sandbox**, and the settlement run refunds it through PayPal.
+
 ## Run locally
 
 Requires Node 26 and pnpm 12. In a clean checkout:
@@ -92,6 +104,6 @@ The Node/TypeScript server exposes a Hono JSON API and serves a React dashboard.
 
 ## Known limits
 
-The automated test suite uses fake PayPal and fake AI. The hosted demo runs in PayPal sandbox mode with simulated orders. A real sandbox purchase in `/store` needs a PayPal sandbox buyer and is outside the offline browser suite; a purchase and its refund were run on the hosted demo on Nov 5, 2026, with sandbox capture `71548971N7998571T` and refund `2CF057992G592873B`. PayPal Transaction Search item detail availability varies; it returned item codes for this sandbox account after the app was granted access. Some recall matches require human review. The fake notice writer is only partly localized for arbitrary products. This prototype gives no legal advice and does not claim compliance. See [the implementation report](docs/REPORT.md) and [backend specification](docs/SPEC.md) for the detailed contract and verified limits.
+The automated test suite uses fake PayPal and fake AI. The hosted demo runs in PayPal sandbox mode with simulated orders. A real sandbox purchase in `/store` needs the sandbox buyer above and is outside the offline browser suite. The last purchase and refund on the hosted demo ran on Nov 6, 2026, with sandbox capture `38N36832EJ771445W` and refund `4PT743402J7042609`. PayPal Transaction Search item detail availability varies; it returned item codes for this sandbox account after the app was granted access. Some recall matches require human review. The fake notice writer is only partly localized for arbitrary products. This prototype gives no legal advice and does not claim compliance. See [the implementation report](docs/REPORT.md) and [backend specification](docs/SPEC.md) for the detailed contract and verified limits.
 
 MIT licensed; see [LICENSE](LICENSE).
