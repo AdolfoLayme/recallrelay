@@ -29,7 +29,7 @@ RecallRelay helps a PayPal merchant respond to a product recall. It connects an 
 
 ## Demo
 
-[![Watch the demo on YouTube](https://img.youtube.com/vi/8U0CaLVPSB4/hqdefault.jpg)](https://youtu.be/8U0CaLVPSB4)
+[![Watch the demo on YouTube](https://img.youtube.com/vi/8U0CaLVPSB4/maxresdefault.jpg)](https://youtu.be/8U0CaLVPSB4)
 
 The narration is an AI voice. We're Spanish speakers and our English isn't good enough yet to present this ourselves.
 
