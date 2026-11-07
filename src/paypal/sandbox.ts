@@ -56,7 +56,7 @@ export class SandboxPayPal implements PayPalGateway {
     let response: Response;
     try {
       response = await this.fetcher(url.toString(), {
-        method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(30_000),
+        method, headers, body: body === undefined || typeof body === 'string' ? body : JSON.stringify(body), signal: AbortSignal.timeout(30_000),
       });
     } catch { throw new PayPalError('PayPal request outcome unknown', 0, true); }
     if (!response.ok) throw new PayPalError('PayPal request failed', response.status, response.status >= 500);
@@ -168,13 +168,16 @@ export class SandboxPayPal implements PayPalGateway {
     await this.request('POST', `/v2/invoicing/invoices/${encodeURIComponent(invoiceId)}/send`, { send_to_recipient: true });
   }
 
-  async verifyWebhook(headers: Headers, event: unknown): Promise<boolean> {
+  async verifyWebhook(headers: Headers, rawBody: string): Promise<boolean> {
+    const fields = JSON.stringify({
+      auth_algo: headers.get('paypal-auth-algo'), cert_url: headers.get('paypal-cert-url'),
+      transmission_id: headers.get('paypal-transmission-id'), transmission_sig: headers.get('paypal-transmission-sig'),
+      transmission_time: headers.get('paypal-transmission-time'), webhook_id: this.webhookId,
+    });
     try {
-      const result = await this.request('POST', '/v1/notifications/verify-webhook-signature', {
-        auth_algo: headers.get('paypal-auth-algo'), cert_url: headers.get('paypal-cert-url'),
-        transmission_id: headers.get('paypal-transmission-id'), transmission_sig: headers.get('paypal-transmission-sig'),
-        transmission_time: headers.get('paypal-transmission-time'), webhook_id: this.webhookId, webhook_event: event,
-      }) as { verification_status?: string };
+      // the signature covers the raw body, a parsed and re-serialized event can fail it
+      const payload = `${fields.slice(0, -1)},"webhook_event":${rawBody}}`;
+      const result = await this.request('POST', '/v1/notifications/verify-webhook-signature', payload) as { verification_status?: string };
       return result.verification_status === 'SUCCESS';
     } catch (cause) {
       // a forged request has no signature headers, PayPal answers 400 to those

@@ -123,6 +123,19 @@ test('capture returns the full order, since the capture response omits payee det
 test('a webhook PayPal refuses to verify is invalid, an outage is not', async () => {
   const gateway = (status: number) => new SandboxPayPal({ clientId: 'id', clientSecret: 'secret', webhookId: 'hook', fetcher: async input =>
     String(input).endsWith('/v1/oauth2/token') ? Response.json({ access_token: 't', expires_in: 3600 }) : new Response('{}', { status }) });
-  assert.equal(await gateway(400).verifyWebhook(new Headers(), {}), false);
-  await assert.rejects(gateway(503).verifyWebhook(new Headers(), {}));
+  assert.equal(await gateway(400).verifyWebhook(new Headers(), '{}'), false);
+  await assert.rejects(gateway(503).verifyWebhook(new Headers(), '{}'));
+});
+
+test('webhook verification sends the exact bytes PayPal signed', async () => {
+  let sent = '';
+  const raw = '{"id":"e1", "resource":{"amount":1.10,"note":"caf\\u00e9"}}';
+  const paypal = new SandboxPayPal({ clientId: 'id', clientSecret: 'secret', webhookId: 'hook', fetcher: async (input, init = {}) => {
+    if (String(input).endsWith('/v1/oauth2/token')) return Response.json({ access_token: 't', expires_in: 3600 });
+    sent = String(init.body);
+    return Response.json({ verification_status: 'SUCCESS' });
+  } });
+  assert.equal(await paypal.verifyWebhook(new Headers({ 'paypal-auth-algo': 'SHA256withRSA' }), raw), true);
+  assert.ok(sent.includes(`"webhook_event":${raw}`));
+  assert.equal(JSON.parse(sent).webhook_id, 'hook');
 });
