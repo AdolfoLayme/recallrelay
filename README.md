@@ -1,10 +1,53 @@
-# RecallRelay
+<h1 align="center">RecallRelay</h1>
 
-RecallRelay helps a PayPal merchant respond to a product recall. It connects an official notice to affected orders, blocks another sale, and prepares a settlement plan. A person approves the exact plan and a budget for each currency before any refund, authorization void, or payout is sent. AI extracts product facts and drafts buyer notices; deterministic code matches orders, chooses actions, and computes amounts.
+<p align="center">
+  When a product gets recalled, find the orders, stop the sale and settle every buyer through PayPal.
+</p>
 
-**Demo video:** https://youtu.be/gYTMIWTGou4
+<p align="center">
+  <a href="https://recallrelay.onrender.com"><img alt="Live demo" src="https://img.shields.io/badge/live_demo-recallrelay.onrender.com-635BFF?style=flat-square"></a>
+  <a href="https://youtu.be/8U0CaLVPSB4"><img alt="Demo video" src="https://img.shields.io/badge/demo_video-2:24-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
+  <a href="https://devpost.com/software/recallrelay-kig6ex"><img alt="Devpost" src="https://img.shields.io/badge/Devpost-PayPal_AI_Hackathon-003E54?style=flat-square&logo=devpost&logoColor=white"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/AdolfoLayme/recallrelay?style=flat-square"></a>
+  <a href="https://github.com/AdolfoLayme/recallrelay/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/AdolfoLayme/recallrelay/ci.yml?branch=main&style=flat-square&label=CI"></a>
+</p>
 
-**Live demo:** https://recallrelay.onrender.com — a free Render service can take about a minute to wake after inactivity. It runs against the PayPal sandbox with simulated orders, labeled in the app: no real money moves.
+<p align="center">
+  <img alt="PayPal" src="https://img.shields.io/badge/PayPal-sandbox-003087?style=flat-square&logo=paypal&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-5FA04E?style=flat-square&logo=nodedotjs&logoColor=white">
+  <img alt="Hono" src="https://img.shields.io/badge/Hono-E36002?style=flat-square&logo=hono&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB">
+  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
+  <img alt="Render" src="https://img.shields.io/badge/Render-000000?style=flat-square&logo=render&logoColor=white">
+</p>
+
+![Settlement plan](docs/design/actual/03-settlement-plan.png)
+
+RecallRelay helps a PayPal merchant respond to a product recall. It connects an official notice to the affected orders, blocks new sales and prepares a settlement plan. A person approves the exact plan and a budget for each currency before any refund, authorization void or payout is sent. AI extracts product facts and drafts buyer notices. Plain code matches orders, picks the action and computes every amount.
+
+## Demo
+
+[![Watch the demo on YouTube](https://img.youtube.com/vi/8U0CaLVPSB4/hqdefault.jpg)](https://youtu.be/8U0CaLVPSB4)
+
+The narration is an AI voice. We're Spanish speakers and our English isn't good enough yet to present this ourselves.
+
+**Try it:** https://recallrelay.onrender.com. It's a free Render service, so it can take about a minute to wake up. It runs against the PayPal sandbox with simulated orders, labeled in the app. No real money moves.
+
+## Screenshots
+
+| Recall feed | Evidence from the notice |
+|---|---|
+| ![Recalls](docs/design/actual/01-recalls.png) | ![Recall file](docs/design/actual/02-recall-file.png) |
+
+| Settlement run | Buyer notice check |
+|---|---|
+| ![Settlement run](docs/design/actual/05-settlement-run.png) | ![Notice check](docs/design/actual/07-notice-check.png) |
+
+| Buyer picks a remedy | Checkout blocked |
+|---|---|
+| <img src="docs/design/actual/09-choose-remedy.png" width="300" alt="Choose remedy"> | <img src="docs/design/actual/11-checkout-blocked.png" width="300" alt="Checkout blocked"> |
 
 ## Judge walkthrough: under three minutes
 
@@ -47,7 +90,7 @@ The optional OpenAI-compatible provider extracts product identifiers with verbat
 
 The Node/TypeScript server exposes a Hono JSON API and serves a React dashboard. SQLite stores private demo sessions, orders, plans, approvals, an outbox, buyer choices, and an immutable audit log. The policy and money modules use integer minor units, with no currency conversion. An outbox row is reserved before a PayPal call and carries a stable idempotency key; uncertain outcomes stay `UNKNOWN` until a PayPal read confirms them. If a refund times out without returning its PayPal ID, it stays open for manual review because a capture's aggregate refunded amount cannot identify that refund. Signed buyer links expire after 30 days. Demo sessions expire after two hours and cap money sends and AI calls. PayPal's live host is refused; sandbox credentials stay on the server.
 
-## Honest limits
+## Known limits
 
 The automated test suite uses fake PayPal and fake AI. The hosted demo runs in PayPal sandbox mode with simulated orders. A real sandbox purchase in `/store` needs a PayPal sandbox buyer and is outside the offline browser suite; a purchase and its refund were run on the hosted demo on Nov 5, 2026, with sandbox capture `71548971N7998571T` and refund `2CF057992G592873B`. PayPal Transaction Search item detail availability varies; it returned item codes for this sandbox account after the app was granted access. Some recall matches require human review. The fake notice writer is only partly localized for arbitrary products. This prototype gives no legal advice and does not claim compliance. See [the implementation report](docs/REPORT.md) and [backend specification](docs/SPEC.md) for the detailed contract and verified limits.
 
