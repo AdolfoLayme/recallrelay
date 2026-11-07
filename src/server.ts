@@ -117,6 +117,7 @@ export function createApp(deps: Dependencies): App {
       c.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     }
     c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Strict-Transport-Security', 'max-age=31536000');
     c.header('X-Frame-Options', 'DENY');
     c.header('Referrer-Policy', 'no-referrer');
     c.header('Content-Security-Policy', c.req.path.startsWith('/v1/') || c.req.path === '/health' || c.req.path.startsWith('/webhooks/')
