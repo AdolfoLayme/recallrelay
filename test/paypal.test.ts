@@ -119,3 +119,10 @@ test('capture returns the full order, since the capture response omits payee det
   assert.equal(order.purchase_units?.[0]?.payee?.merchant_id, 'merchant-1');
   assert.deepEqual(calls, ['POST /v2/checkout/orders/order1/capture', 'GET /v2/checkout/orders/order1']);
 });
+
+test('a webhook PayPal refuses to verify is invalid, an outage is not', async () => {
+  const gateway = (status: number) => new SandboxPayPal({ clientId: 'id', clientSecret: 'secret', webhookId: 'hook', fetcher: async input =>
+    String(input).endsWith('/v1/oauth2/token') ? Response.json({ access_token: 't', expires_in: 3600 }) : new Response('{}', { status }) });
+  assert.equal(await gateway(400).verifyWebhook(new Headers(), {}), false);
+  await assert.rejects(gateway(503).verifyWebhook(new Headers(), {}));
+});
