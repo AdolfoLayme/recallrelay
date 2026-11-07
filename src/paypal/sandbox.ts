@@ -169,11 +169,17 @@ export class SandboxPayPal implements PayPalGateway {
   }
 
   async verifyWebhook(headers: Headers, event: unknown): Promise<boolean> {
-    const result = await this.request('POST', '/v1/notifications/verify-webhook-signature', {
-      auth_algo: headers.get('paypal-auth-algo'), cert_url: headers.get('paypal-cert-url'),
-      transmission_id: headers.get('paypal-transmission-id'), transmission_sig: headers.get('paypal-transmission-sig'),
-      transmission_time: headers.get('paypal-transmission-time'), webhook_id: this.webhookId, webhook_event: event,
-    }) as { verification_status?: string };
-    return result.verification_status === 'SUCCESS';
+    try {
+      const result = await this.request('POST', '/v1/notifications/verify-webhook-signature', {
+        auth_algo: headers.get('paypal-auth-algo'), cert_url: headers.get('paypal-cert-url'),
+        transmission_id: headers.get('paypal-transmission-id'), transmission_sig: headers.get('paypal-transmission-sig'),
+        transmission_time: headers.get('paypal-transmission-time'), webhook_id: this.webhookId, webhook_event: event,
+      }) as { verification_status?: string };
+      return result.verification_status === 'SUCCESS';
+    } catch (cause) {
+      // a forged request has no signature headers, PayPal answers 400 to those
+      if (cause instanceof PayPalError && cause.status >= 400 && cause.status < 500) return false;
+      throw cause;
+    }
   }
 }
