@@ -145,10 +145,11 @@ try {
   await page.waitForURL("**/plans/*");
   const planId = page.url().split("/").at(-1)!;
   await page.getByRole("heading", { name: "Approve plan" }).waitFor();
-  await page.locator(".plan-table tbody tr:first-child td:first-child").getByText("#1042").waitFor();
-  await page.locator(".plan-table tbody tr:first-child").getByText("12 d").waitFor();
-  const planRows = page.locator(".plan-table tbody tr");
-  assert.deepEqual(await planRows.locator("td:first-child").allTextContents(), [
+  // the plan is an AG Grid now: rows are .ag-row in DOM order (ensureDomOrder), cells by col-id
+  const planRows = page.locator(".plan-table-grid .ag-row:not(.ag-row-pinned)");
+  await planRows.first().locator('[col-id="orderId"]').getByText("#1042").waitFor();
+  await planRows.first().getByText("12 d").waitFor();
+  assert.deepEqual(await planRows.locator('[col-id="orderId"]').allTextContents(), [
     "#1042",
     "#1071",
     "#1019",
@@ -163,15 +164,15 @@ try {
     "#1038",
   ]);
   assert.equal(
-    await planRows.filter({ hasText: "#1103" }).locator("td:last-child").innerText(),
+    await planRows.filter({ hasText: "#1103" }).locator('[col-id="amount"]').innerText(),
     "¥12,800 JPY",
   );
   assert.equal(
-    await planRows.filter({ hasText: "#1088" }).locator("td:last-child").innerText(),
+    await planRows.filter({ hasText: "#1088" }).locator('[col-id="amount"]').innerText(),
     "£99.00 GBP",
   );
   assert.equal(
-    await planRows.filter({ hasText: "#1077" }).locator("td:last-child").innerText(),
+    await planRows.filter({ hasText: "#1077" }).locator('[col-id="amount"]').innerText(),
     "$129.00 USD",
   );
   assert.match(await planRows.filter({ hasText: "#1042" }).innerText(), /12 d/);
@@ -192,7 +193,7 @@ try {
       { currency: "EUR", moves: "€0.00 EUR", budget: "250.00" },
     ],
   );
-  assert.equal(await page.locator(".plan-table tbody").getByText("Simulated").count(), 0);
+  assert.equal(await page.locator(".plan-table-grid .ag-row:not(.ag-row-pinned)").getByText("Simulated").count(), 0);
   await shot("03-settlement-plan.png");
   await page.getByRole("button", { name: "Approve plan and budget" }).click();
   await page.getByText("Approved", { exact: true }).waitFor();

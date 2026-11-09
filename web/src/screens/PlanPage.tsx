@@ -3,6 +3,7 @@ import { api, ApiFailure, money } from "../api.ts";
 import type { Order, Plan, Recall } from "../api.ts";
 import { ActionStamp, BusyButton, ErrorLine, Header, Result, Shell, Stamp, useLoad } from "../ui.tsx";
 import { displayAmount, ruleText } from "./plan-display.ts";
+import { PlanGrid } from "./PlanGrid.tsx";
 
 export function PlanPage({ id }: { id: string }) {
   const [plan, reload] = useLoad<Plan>(`/v1/plans/${id}`);
@@ -76,53 +77,56 @@ export function PlanPage({ id }: { id: string }) {
           return (
             <div className="plan-grid">
               <div className="table-wrap">
+                {/* DESACTIVADO 2026-11-09: plain table, replaced by the AG Grid plan below.
                 <table className="data-table plan-table">
-                  <thead>
-                    <tr>
-                      <th>Order</th>
-                      <th>Country</th>
-                      <th>Age</th>
-                      <th>Action</th>
-                      <th>Rule</th>
-                      <th className="amount">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...value.items].sort((a, b) => (position.get(a.orderId) ?? 999) - (position.get(b.orderId) ?? 999)).map((item) => {
-                      const order = byId.get(item.orderId);
-                      return (
-                        <tr key={item.orderId}>
-                          <td className="mono">#{item.orderId}</td>
-                          <td>{order?.buyerCountry ?? "—"}</td>
-                          <td className="muted">
-                            {order ? Math.floor((asOf - Date.parse(order.paidAt)) / 86400000) : "—"} d
-                          </td>
-                          <td>
-                            {item.action === "REFUND" && ruleText(item, order, asOf).includes("days left")
-                              ? <Stamp text="Refund" tone="red" />
-                              : <ActionStamp action={item.action} />}
-                          </td>
-                          <td
-                            className={item.action === "MANUAL_REVIEW" ||
-                                (item.action === "REFUND" && ruleText(item, order, asOf).includes("days left"))
-                              ? "red-text"
-                              : "muted"}
-                          >
-                            {ruleText(item, order, asOf)}
-                          </td>
-                          <td className="amount">
-                            {money(displayAmount(item, order), item.currency)}
-                            {order?.gateway === "sandbox" && (
-                              <small>
-                                <Stamp text="Real sandbox" tone="blue" />
-                              </small>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                <thead>
+                <tr>
+                <th>Order</th>
+                <th>Country</th>
+                <th>Age</th>
+                <th>Action</th>
+                <th>Rule</th>
+                <th className="amount">Amount</th>
+                </tr>
+                </thead>
+                <tbody>
+                {[...value.items].sort((a, b) => (position.get(a.orderId) ?? 999) - (position.get(b.orderId) ?? 999)).map((item) => {
+                const order = byId.get(item.orderId);
+                return (
+                <tr key={item.orderId}>
+                <td className="mono">#{item.orderId}</td>
+                <td>{order?.buyerCountry ?? "—"}</td>
+                <td className="muted">
+                {order ? Math.floor((asOf - Date.parse(order.paidAt)) / 86400000) : "—"} d
+                </td>
+                <td>
+                {item.action === "REFUND" && ruleText(item, order, asOf).includes("days left")
+                ? <Stamp text="Refund" tone="red" />
+                : <ActionStamp action={item.action} />}
+                </td>
+                <td
+                className={item.action === "MANUAL_REVIEW" ||
+                (item.action === "REFUND" && ruleText(item, order, asOf).includes("days left"))
+                ? "red-text"
+                : "muted"}
+                >
+                {ruleText(item, order, asOf)}
+                </td>
+                <td className="amount">
+                {money(displayAmount(item, order), item.currency)}
+                {order?.gateway === "sandbox" && (
+                <small>
+                <Stamp text="Real sandbox" tone="blue" />
+                </small>
+                )}
+                </td>
+                </tr>
+                );
+                })}
+                </tbody>
                 </table>
+                */}
+                <PlanGrid planId={id} items={value.items} byId={byId} position={position} asOf={asOf} />
                 <p className="simulation-note muted">All orders are simulated unless marked Real sandbox.</p>
               </div>
               <aside className="outline-panel approve-panel">

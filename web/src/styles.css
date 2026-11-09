@@ -334,3 +334,14 @@ hr { border: 0; border-top: 1px solid var(--border-soft); margin: 20px 0; }
 .data-table th.amount, .budget-table th.amount { font-size: 12px; font-weight: 500; color: var(--text-3); text-align: right; }
 .today-caption { top: auto; bottom: -26px; }
 .timeline { padding-bottom: 44px; }
+
+/* Settlement plan in AG Grid (Community) */
+.plan-ag-tools { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.plan-ag-search { flex: 1; max-width: 360px; }
+.plan-ag-search input { width: 100%; min-height: 32px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.plan-ag-search input:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.plan-table-grid .ag-row.grid-attention { background: var(--danger-fill); }
+.plan-table-grid .ag-row-pinned { background: var(--bg-subtle); font-weight: 600; }
+.plan-table-grid .grid-total-label { color: var(--text-2); }
+.plan-table-grid .ag-cell { display: flex; align-items: center; }
+.plan-table-grid .ag-right-aligned-cell { justify-content: flex-end; }
