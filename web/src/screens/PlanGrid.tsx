@@ -116,6 +116,13 @@ export function PlanGrid({ planId, items, byId, position, asOf }: {
     },
     {
       field: "rule", headerName: "Rule", flex: 1, minWidth: 150, filter: "agTextColumnFilter", tooltipField: "rule",
+      // the real sandbox purchase is marked here; in Amount the stamp cut the figure off
+      cellRenderer: (p: { data?: Row; value?: string }) => (
+        <span>
+          {p.value}
+          {p.data?.sandbox && <small> <Stamp text="Real sandbox" tone="blue" /></small>}
+        </span>
+      ),
       cellClassRules: { "red-text": (p) => !!p.data?.urgent, muted: (p) => !p.data?.urgent && !p.data?.total, "grid-total-label": (p) => !!p.data?.total },
     },
     // currency shows inside Amount; the quick filter finds it too
@@ -132,7 +139,6 @@ export function PlanGrid({ planId, items, byId, position, asOf }: {
         return (
           <span className={row.total ? "grid-total" : undefined}>
             {money(row.amountMinor, row.currency)}
-            {row.sandbox && <small> <Stamp text="Real sandbox" tone="blue" /></small>}
           </span>
         );
       },
