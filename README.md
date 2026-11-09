@@ -21,6 +21,7 @@
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white">
   <img alt="Render" src="https://img.shields.io/badge/Render-000000?style=flat-square&logo=render&logoColor=white">
+  <img alt="AG Grid" src="https://img.shields.io/badge/AG_Grid-0B5A9E?style=flat-square">
 </p>
 
 ![Settlement plan](docs/design/actual/03-settlement-plan.png)
@@ -33,7 +34,7 @@ RecallRelay helps a PayPal merchant respond to a product recall. It connects an 
 
 The narration is an AI voice. We're Spanish speakers and our English isn't good enough yet to present this ourselves.
 
-**Try it:** https://recallrelay.onrender.com. It's a free Render service, so it can take about a minute to wake up. It runs against the PayPal sandbox with simulated orders, labeled in the app. No real money moves.
+**Try it:** https://recallrelay.onrender.com. It's a free Render service, kept awake by a scheduled ping, so it should open right away. It runs against the PayPal sandbox with simulated orders, labeled in the app. No real money moves.
 
 ## Screenshots
 
@@ -100,7 +101,7 @@ The optional OpenAI-compatible provider extracts product identifiers with verbat
 
 ## Architecture and safety
 
-The Node/TypeScript server exposes a Hono JSON API and serves a React dashboard. SQLite stores private demo sessions, orders, plans, approvals, an outbox, buyer choices, and an immutable audit log. The policy and money modules use integer minor units, with no currency conversion. An outbox row is reserved before a PayPal call and carries a stable idempotency key; uncertain outcomes stay `UNKNOWN` until a PayPal read confirms them. If a refund times out without returning its PayPal ID, it stays open for manual review because a capture's aggregate refunded amount cannot identify that refund. Signed buyer links expire after 30 days. Demo sessions expire after two hours and cap money sends and AI calls. PayPal's live host is refused; sandbox credentials stay on the server.
+The Node/TypeScript server exposes a Hono JSON API and serves a React dashboard. The settlement plan is an AG Grid (Community) table: sortable and filterable columns, a quick filter, rows flagged for attention, per-currency totals pinned at the bottom (currencies are never added together) and a CSV export for the audit trail. SQLite stores private demo sessions, orders, plans, approvals, an outbox, buyer choices, and an immutable audit log. The policy and money modules use integer minor units, with no currency conversion. An outbox row is reserved before a PayPal call and carries a stable idempotency key; uncertain outcomes stay `UNKNOWN` until a PayPal read confirms them. If a refund times out without returning its PayPal ID, it stays open for manual review because a capture's aggregate refunded amount cannot identify that refund. Signed buyer links expire after 30 days. Demo sessions expire after two hours and cap money sends and AI calls. PayPal's live host is refused; sandbox credentials stay on the server.
 
 ## Known limits
 
