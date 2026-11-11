@@ -96,7 +96,9 @@ export function PlanGrid({ planId, items, byId, position, asOf }: {
   const columns = useMemo<ColDef<Row>[]>(() => [
     {
       field: "orderId", headerName: "Order", width: 92, cellClass: "mono", filter: "agTextColumnFilter",
-      valueFormatter: (p) => (p.data?.total ? "" : `#${p.value}`),
+      // store orders carry the full PayPal capture id, too long for this column: shorten it, full id on hover and in the CSV
+      valueFormatter: (p) => (p.data?.total ? "" : String(p.value).startsWith("store-") ? `#${String(p.value).slice(6, 12)}…` : `#${p.value}`),
+      tooltipValueGetter: (p) => (p.data?.total ? undefined : `#${p.value}`),
     },
     { field: "country", headerName: "Country", width: 92, filter: "agTextColumnFilter" },
     {
